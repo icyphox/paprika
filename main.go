@@ -14,12 +14,17 @@ func ircHandler(c *irc.Client, m *irc.Message) {
 		// TODO: load this from config
 		c.Write("JOIN #taigobot-test")
 	case "PRIVMSG":
-		if m.Trailing()[:1] == "." {
-			err := plugins.ProcessCommands(m.Trailing())
-			if err != nil {
-				c.Writef("error: %v", err)
-			}
+		response, err := plugins.ProcessTrigger(m)
+		if err != nil {
+			c.Writef("error: %v", err)
 		}
+		c.WriteMessage(&irc.Message{
+			Command: "PRIVMSG",
+			Params: []string{
+				m.Params[0],
+				response,
+			},
+		})
 	}
 }
 
