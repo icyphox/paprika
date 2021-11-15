@@ -52,7 +52,7 @@ func NowPlaying(user string) (string, error) {
 		// Now playing a track
 		tm := li.Payload.Listens[0].TrackMetadata
 		return fmt.Sprintf(
-			`%s is currently listening to "%s" by %s, from the album %s`,
+			"%s is currently listening to \"%s\" by \x02%s\x02, from the album \x02%s\x02",
 			user,
 			tm.TrackName,
 			tm.ArtistName,
@@ -69,11 +69,10 @@ func NowPlaying(user string) (string, error) {
 			return "", err
 		}
 
-		fmt.Println(li)
 		tm := li.Payload.Listens[0].TrackMetadata
 		listenedAt, _ := time.Parse(time.RFC1123, li.Payload.Listens[0].InsertedAt)
 		return fmt.Sprintf(
-			`%s listened to "%s" by %s, from the album %s, %s`,
+			"%s listened to \"%s\" by \x02%s\x02, from the album \x02%s\x02, %s",
 			user,
 			tm.TrackName,
 			tm.ArtistName,
