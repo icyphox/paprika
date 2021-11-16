@@ -35,6 +35,8 @@ func getListen(url string) (*ListenInfo, error) {
 	}
 
 	json.NewDecoder(r.Body).Decode(&li)
+	defer r.Body.Close()
+
 	return &li, err
 }
 
