@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -41,10 +42,10 @@ func ddgParse(body io.Reader) (string, error) {
 				if hasAttr {
 					var key []byte
 					var val []byte
-				    var lhref []byte
+					var lhref []byte
 					isRes := false
 
-					for ;hasAttr; {
+					for hasAttr {
 						key, val, hasAttr = tok.TagAttr()
 						if bytes.Equal(key, []byte("href")) {
 							lhref = val
@@ -80,7 +81,7 @@ func ddgParse(body io.Reader) (string, error) {
 				} else {
 					len = snippet.Len()
 				}
-				return snippet.String()[:len] + " - " + href , nil
+				return snippet.String()[:len] + " - " + href, nil
 			} else if inResult && tag[0] == 'b' {
 				//snippet.WriteRune('\x02')
 			}
@@ -88,18 +89,18 @@ func ddgParse(body io.Reader) (string, error) {
 	}
 
 	if err := tok.Err(); err != io.EOF && err != nil {
-		return "HTML parse error.", err
+		return "HTML parse error", err
 	} else {
 		return "No results.", nil
 	}
 }
 
-// Use DuckDuckGo's 
+// Use DuckDuckGo's
 func ddg(query string) (string, error) {
 	req, err := http.NewRequest("GET", "https://html.duckduckgo.com/html", nil)
 
 	if err != nil {
-		return "Client Request Error.", err
+		return "Client request error", err
 	}
 
 	req.Header.Add("User-Agent", "github.com/icyphox/Taigobot")
@@ -110,13 +111,13 @@ func ddg(query string) (string, error) {
 
 	res, err := ddgClient.Do(req)
 	if err != nil {
-		return "Server Response Error", err
+		return "Server response error", err
 	}
-	
+
 	defer res.Body.Close()
 	result, err := ddgParse(res.Body)
 	if err != nil {
-		return "HTML Parse Error.", err
+		return "HTML parse error", err
 	}
 	return result, nil
 }
@@ -137,7 +138,7 @@ func wiki(query string) (string, error) {
 func (Search) Execute(m *irc.Message) (string, error) {
 	parsed := strings.SplitN(m.Trailing(), " ", 2)
 	if len(parsed) != 2 {
-		return "Error: Search plugin requires a query parameter", nil
+		return fmt.Sprintf("Usage: %s <query>", parsed[0]), nil
 	}
 	trigger, query := parsed[0], parsed[1]
 
