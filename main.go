@@ -4,7 +4,9 @@ import (
 	"log"
 	"net"
 
+	"git.icyphox.sh/taigobot/db"
 	"git.icyphox.sh/taigobot/plugins"
+	"github.com/dgraph-io/badger/v3"
 	"gopkg.in/irc.v3"
 )
 
@@ -42,6 +44,12 @@ func main() {
 		Name:    "taigobot",
 		Handler: irc.HandlerFunc(ircHandler),
 	}
+
+	db.DB, err = badger.Open(badger.DefaultOptions("./badger"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.DB.Close()
 
 	client := irc.NewClient(conn, config)
 	err = client.Run()
