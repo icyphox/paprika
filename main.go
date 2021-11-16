@@ -18,7 +18,7 @@ func ircHandler(c *irc.Client, m *irc.Message) {
 	case "PRIVMSG":
 		response, err := plugins.ProcessTrigger(m)
 		if err != nil {
-			c.Writef("error: %v", err)
+			log.Printf("error: %v", err)
 		}
 		c.WriteMessage(&irc.Message{
 			Command: "PRIVMSG",
@@ -38,9 +38,9 @@ func main() {
 	}
 
 	config := irc.ClientConfig{
-		Nick:    "taigobot",
+		Nick:    "taigobot112",
 		Pass:    "",
-		User:    "taigobot",
+		User:    "taigobot112",
 		Name:    "taigobot",
 		Handler: irc.HandlerFunc(ircHandler),
 	}
