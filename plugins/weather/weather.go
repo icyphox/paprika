@@ -67,15 +67,14 @@ func ctof(c float64) float64 {
 var wj []byte
 
 func symbolToDesc(s string) string {
-	m := make(map[string]interface{})
+	m := make(map[string]string)
 	json.Unmarshal(wj, &m)
 
 	// Some symbols have a _, which isn't present in
 	// the data. So we strip it.
 	s = strings.Split(s, "_")[0]
 
-	// lmao
-	return m[s].(map[string]interface{})["desc"].(string) + ", "
+	return m[s] + ", "
 }
 
 // Looks like Nominatim uses (lon,lat).
@@ -127,7 +126,7 @@ func GetWeather(lonlat [2]float64, location string) (string, error) {
 	wsUnit := wd.Properties.Meta.Units.WindSpeed
 	fmt.Fprintf(
 		&info,
-		"\x02Wind Speed:\x02 %0.1f%s, ",
+		"\x02Wind Speed:\x02 %0.1f %s, ",
 		ws,
 		wsUnit,
 	)
@@ -136,7 +135,7 @@ func GetWeather(lonlat [2]float64, location string) (string, error) {
 	ps := wd.Properties.Timeseries[0].Data.Instant.Details.AirPressureAtSeaLevel
 	psUnit := wd.Properties.Meta.Units.AirPressureAtSeaLevel
 	fmt.Fprintf(&info,
-		"\x02Pressure:\x02 %0.1f%s",
+		"\x02Pressure:\x02 %0.1f %s",
 		ps,
 		psUnit,
 	)

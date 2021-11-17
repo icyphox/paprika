@@ -1,250 +1,43 @@
 {
-  "lightsleetshowers": {
-    "desc": "Light sleet showers",
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ]
-  },
-  "heavyrainandthunder": {
-    "desc": "Heavy rain and thunder",
-    "variants": null
-  },
-  "heavyrainshowers": {
-    "desc": "Heavy rain showers",
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ]
-  },
-  "clearsky": {
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ],
-    "desc": "Clear sky"
-  },
-  "partlycloudy": {
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ],
-    "desc": "Partly cloudy"
-  },
-  "heavysleetshowers": {
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ],
-    "desc": "Heavy sleet showers"
-  },
-  "lightrainshowersandthunder": {
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ],
-    "desc": "Light rain showers and thunder"
-  },
-  "lightrainandthunder": {
-    "desc": "Light rain and thunder",
-    "variants": null
-  },
-  "snowshowersandthunder": {
-    "desc": "Snow showers and thunder",
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ]
-  },
-  "fog": {
-    "desc": "Fog",
-    "variants": null
-  },
-  "heavysleetshowersandthunder": {
-    "desc": "Heavy sleet showers and thunder",
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ]
-  },
-  "rain": {
-    "desc": "Rain",
-    "variants": null
-  },
-  "sleetandthunder": {
-    "desc": "Sleet and thunder",
-    "variants": null
-  },
-  "sleet": {
-    "desc": "Sleet",
-    "variants": null
-  },
-  "rainshowersandthunder": {
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ],
-    "desc": "Rain showers and thunder"
-  },
-  "heavysnowshowers": {
-    "desc": "Heavy snow showers",
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ]
-  },
-  "heavyrain": {
-    "desc": "Heavy rain",
-    "variants": null
-  },
-  "snowshowers": {
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ],
-    "desc": "Snow showers"
-  },
-  "lightsnowshowers": {
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ],
-    "desc": "Light snow showers"
-  },
-  "snow": {
-    "desc": "Snow",
-    "variants": null
-  },
-  "lightrainshowers": {
-    "desc": "Light rain showers",
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ]
-  },
-  "lightsnowandthunder": {
-    "variants": null,
-    "desc": "Light snow and thunder"
-  },
-  "lightssleetshowersandthunder": {
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ],
-    "desc": "Light sleet showers and thunder"
-  },
-  "fair": {
-    "desc": "Fair",
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ]
-  },
-  "lightssnowshowersandthunder": {
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ],
-    "desc": "Light snow showers and thunder"
-  },
-  "lightsnow": {
-    "variants": null,
-    "desc": "Light snow"
-  },
-  "sleetshowers": {
-    "desc": "Sleet showers",
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ]
-  },
-  "heavysleet": {
-    "desc": "Heavy sleet",
-    "variants": null
-  },
-  "lightsleetandthunder": {
-    "variants": null,
-    "desc": "Light sleet and thunder"
-  },
-  "cloudy": {
-    "variants": null,
-    "desc": "Cloudy"
-  },
-  "lightrain": {
-    "variants": null,
-    "desc": "Light rain"
-  },
-  "heavysnowshowersandthunder": {
-    "desc": "Heavy snow showers and thunder",
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ]
-  },
-  "heavyrainshowersandthunder": {
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ],
-    "desc": "Heavy rain showers and thunder"
-  },
-  "heavysnow": {
-    "variants": null,
-    "desc": "Heavy snow"
-  },
-  "sleetshowersandthunder": {
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ],
-    "desc": "Sleet showers and thunder"
-  },
-  "rainandthunder": {
-    "variants": null,
-    "desc": "Rain and thunder"
-  },
-  "heavysleetandthunder": {
-    "desc": "Heavy sleet and thunder",
-    "variants": null
-  },
-  "rainshowers": {
-    "desc": "Rain showers",
-    "variants": [
-      "day",
-      "night",
-      "polartwilight"
-    ]
-  },
-  "lightsleet": {
-    "desc": "Light sleet",
-    "variants": null
-  },
-  "heavysnowandthunder": {
-    "variants": null,
-    "desc": "Heavy snow and thunder"
-  },
-  "snowandthunder": {
-    "desc": "Snow and thunder",
-    "variants": null
-  }
+  "lightsleetshowers": "Light sleet showers",
+  "heavyrainandthunder": "Heavy rain and thunder",
+  "heavyrainshowers": "Heavy rain showers",
+  "clearsky": "Clear sky",
+  "partlycloudy": "Partly cloudy",
+  "heavysleetshowers": "Heavy sleet showers",
+  "lightrainshowersandthunder": "Light rain showers and thunder",
+  "lightrainandthunder": "Light rain and thunder",
+  "snowshowersandthunder": "Snow showers and thunder",
+  "fog": "Fog",
+  "heavysleetshowersandthunder": "Heavy sleet showers and thunder",
+  "rain": "Rain",
+  "sleetandthunder": "Sleet and thunder",
+  "sleet": "Sleet",
+  "rainshowersandthunder": "Rain showers and thunder",
+  "heavysnowshowers": "Heavy snow showers",
+  "heavyrain": "Heavy rain",
+  "snowshowers": "Snow showers",
+  "lightsnowshowers": "Light snow showers",
+  "snow": "Snow",
+  "lightrainshowers": "Light rain showers",
+  "lightsnowandthunder": "Light snow and thunder",
+  "lightssleetshowersandthunder": "Light sleet showers and thunder",
+  "fair": "Fair",
+  "lightssnowshowersandthunder": "Light snow showers and thunder",
+  "lightsnow": "Light snow",
+  "sleetshowers": "Sleet showers",
+  "heavysleet": "Heavy sleet",
+  "lightsleetandthunder": "Light sleet and thunder",
+  "cloudy": "Cloudy",
+  "lightrain": "Light rain",
+  "heavysnowshowersandthunder": "Heavy snow showers and thunder",
+  "heavyrainshowersandthunder": "Heavy rain showers and thunder",
+  "heavysnow": "Heavy snow",
+  "sleetshowersandthunder": "Sleet showers and thunder",
+  "rainandthunder": "Rain and thunder",
+  "heavysleetandthunder": "Heavy sleet and thunder",
+  "rainshowers": "Rain showers",
+  "lightsleet": "Light sleet",
+  "heavysnowandthunder": "Heavy snow and thunder",
+  "snowandthunder": "Snow and thunder"
 }
