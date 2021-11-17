@@ -3,9 +3,9 @@ module git.icyphox.sh/taigobot
 go 1.17
 
 require (
-	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
 	github.com/dgraph-io/badger/v3 v3.2103.2
 	github.com/dustin/go-humanize v1.0.0
+	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
 	gopkg.in/irc.v3 v3.1.4
 )
 
@@ -22,6 +22,5 @@ require (
 	github.com/klauspost/compress v1.12.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	go.opencensus.io v0.22.5 // indirect
-	golang.org/x/net v0.0.0-20201021035429-f5854403a974 // indirect
-	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
+	golang.org/x/sys v0.0.0-20210423082822-04245dca01da // indirect
 )
