@@ -14,10 +14,7 @@ type WeatherData struct {
 			Units struct {
 				AirPressureAtSeaLevel string `json:"air_pressure_at_sea_level"`
 				AirTemperature        string `json:"air_temperature"`
-				CloudAreaFraction     string `json:"cloud_area_fraction"`
-				PrecipitationAmount   string `json:"precipitation_amount"`
 				RelativeHumidity      string `json:"relative_humidity"`
-				WindFromDirection     string `json:"wind_from_direction"`
 				WindSpeed             string `json:"wind_speed"`
 			} `json:"units"`
 		} `json:"meta"`
@@ -27,9 +24,7 @@ type WeatherData struct {
 					Details struct {
 						AirPressureAtSeaLevel float64 `json:"air_pressure_at_sea_level"`
 						AirTemperature        float64 `json:"air_temperature"`
-						CloudAreaFraction     int     `json:"cloud_area_fraction"`
 						RelativeHumidity      float64 `json:"relative_humidity"`
-						WindFromDirection     float64 `json:"wind_from_direction"`
 						WindSpeed             float64 `json:"wind_speed"`
 					} `json:"details"`
 				} `json:"instant"`
