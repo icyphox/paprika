@@ -27,7 +27,7 @@ func ProcessTrigger(m *irc.Message) (string, error) {
 		err      error
 	)
 	for trigger, plugin := range Plugins {
-		if strings.HasPrefix(m.Trailing(), trigger) {
+		if strings.HasPrefix(m.Trailing(), trigger) || trigger == "" {
 			response, err = plugin.Execute(m)
 			if err != nil {
 				return "", err
