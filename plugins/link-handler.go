@@ -4,6 +4,7 @@
 package plugins
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -15,7 +16,7 @@ import (
 	"gopkg.in/irc.v3"
 )
 
-// NOTE(nojusr): This plugin is an example of how to make something that will
+// This plugin is an example of how to make something that will
 // respond (or just have read access to) every message that comes in.
 // The plugins.go file has a special case for handling an 'empty' Triggers string.
 // on such a case, it will simply run Execute on every message that it sees.
@@ -27,14 +28,14 @@ func init() {
 type LinkHandler struct{}
 
 func (LinkHandler) Triggers() []string {
-	return []string{""} // NOTE(nojusr): More than a single empty string here will probs get you undefined behaviour
+	return []string{""} // More than a single empty string here will probs get you undefined behaviour
 }
 
 func (LinkHandler) Execute(m *irc.Message) (string, error) {
 
 	var output string
 
-	// NOTE(nojusr): in PRIVMSG's case, the second (first, if counting from 0) parameter
+	// in PRIVMSG's case, the second (first, if counting from 0) parameter
 	// is the string that contains the complete message.
 	for _, value := range strings.Split(m.Params[1], " ") {
 		u, err := url.Parse(value)
@@ -43,23 +44,29 @@ func (LinkHandler) Execute(m *irc.Message) (string, error) {
 			continue
 		}
 
-		// NOTE(nojusr): just a test check for the time being.
+		// just a test check for the time being.
 		// this if statement block will be used for content that is
 		// non-generic. I.e it belongs to a specific website, like
 		// stackoverflow or youtube.
 		if u.Hostname() == "youtube.com" || u.Hostname() == "youtu.be" {
-			// TODO(nojusr): finish this
-			output += "[Youtube] yeah you definitely posted a youtube link"
+			// TODO finish this
+			output += "[Youtube] yeah you definitely posted a youtube link\n"
 		} else if len(u.Hostname()) > 0 {
-			output += "[URL] "
-			output += getDescriptionFromURL(value)
-
+			desc, err := getDescriptionFromURL(value)
+			if err != nil {
+				log.Printf("Failed to get title from http URL")
+				fmt.Println(err)
+				continue
+			}
+			output += fmt.Sprintf("[URL] %s (%s)\n", desc, u.Hostname())
 		}
 	}
 
 	return output, nil
 }
 
+// the three funcs below are taken from:
+// https://siongui.github.io/2016/05/10/go-get-html-title-via-net-html/
 func isTitleElement(n *html.Node) bool {
 	return n.Type == html.ElementNode && n.Data == "title"
 }
@@ -88,7 +95,7 @@ func getHtmlTitle(r io.Reader) (string, bool) {
 	return traverse(doc)
 }
 
-// NOTE(nojusr): yoinkies from
+// yoinkies from
 // https://yourbasic.org/golang/formatting-byte-size-to-human-readable-format/
 func byteCountSI(b int64) string {
 	const unit = 1000
@@ -104,13 +111,13 @@ func byteCountSI(b int64) string {
 		float64(b)/float64(div), "kMGTPE"[exp])
 }
 
-// NOTE(nojusr): provides a basic, short description of whatever is inside
+// provides a basic, short description of whatever is inside
 // a posted URL.
-func getDescriptionFromURL(url string) string {
+func getDescriptionFromURL(url string) (string, error) {
 	resp, err := http.Get(url)
 
 	if err != nil {
-		return ""
+		return "", err
 	}
 
 	defer resp.Body.Close()
@@ -119,15 +126,16 @@ func getDescriptionFromURL(url string) string {
 
 	switch mime {
 	case "image/jpeg":
-		return "JPEG image (" + byteCountSI(resp.ContentLength) + ")"
+		return fmt.Sprintf("JPEG image, size: %s", byteCountSI(resp.ContentLength)), nil
 	case "image/png":
-		return "PNG image (" + byteCountSI(resp.ContentLength) + ")"
+		return fmt.Sprintf("PNG image, size: %s", byteCountSI(resp.ContentLength)), nil
 	default:
-		output, err := getHtmlTitle(resp.Body)
-		if err == false {
-			log.Printf("Failed to get title from http URL")
-			return url // NOTE(nojusr): if you fuck up, just pretend that everythin is ok :)
+		output, ok := getHtmlTitle(resp.Body)
+
+		if !ok {
+			return "", errors.New("Failed to find <title> in html")
 		}
-		return output + "(" + url + ")"
+
+		return output, nil
 	}
 }
