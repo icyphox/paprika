@@ -3,7 +3,7 @@ package listenbrainz
 import (
 	"fmt"
 
-	"git.icyphox.sh/taigobot/db"
+	"git.icyphox.sh/paprika/db"
 	"github.com/dgraph-io/badger/v3"
 )
 

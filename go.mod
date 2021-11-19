@@ -1,4 +1,4 @@
-module git.icyphox.sh/taigobot
+module git.icyphox.sh/paprika
 
 go 1.17
 

@@ -12,7 +12,7 @@ func init() {
 type Hello struct{}
 
 func (Hello) Triggers() []string {
-	return []string{".hello", "taigobot"}
+	return []string{".hello", "paprika"}
 }
 
 func (Hello) Execute(m *irc.Message) (string, error) {

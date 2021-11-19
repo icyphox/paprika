@@ -103,7 +103,7 @@ func ddg(query string) (string, error) {
 		return "Client request error", err
 	}
 
-	req.Header.Add("User-Agent", "github.com/icyphox/Taigobot")
+	req.Header.Add("User-Agent", "github.com/icyphox/paprika")
 
 	q := req.URL.Query()
 	q.Add("q", query)

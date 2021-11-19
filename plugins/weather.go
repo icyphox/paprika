@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"git.icyphox.sh/taigobot/plugins/weather"
+	"git.icyphox.sh/paprika/plugins/weather"
 	"gopkg.in/irc.v3"
 )
 

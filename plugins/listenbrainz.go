@@ -4,7 +4,7 @@ package plugins
 import (
 	"strings"
 
-	"git.icyphox.sh/taigobot/plugins/listenbrainz"
+	"git.icyphox.sh/paprika/plugins/listenbrainz"
 	"github.com/dgraph-io/badger/v3"
 	"gopkg.in/irc.v3"
 )

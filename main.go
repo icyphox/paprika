@@ -4,8 +4,8 @@ import (
 	"log"
 	"net"
 
-	"git.icyphox.sh/taigobot/db"
-	"git.icyphox.sh/taigobot/plugins"
+	"git.icyphox.sh/paprika/db"
+	"git.icyphox.sh/paprika/plugins"
 	"github.com/dgraph-io/badger/v3"
 	"gopkg.in/irc.v3"
 )
@@ -38,10 +38,10 @@ func main() {
 	}
 
 	config := irc.ClientConfig{
-		Nick:    "taigobot112",
+		Nick:    "paprika112",
 		Pass:    "",
-		User:    "taigobot112",
-		Name:    "taigobot",
+		User:    "paprika112",
+		Name:    "paprika",
 		Handler: irc.HandlerFunc(ircHandler),
 	}
 

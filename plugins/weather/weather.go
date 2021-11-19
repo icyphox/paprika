@@ -44,7 +44,7 @@ func getWeatherData(lonlat [2]float64) (*WeatherData, error) {
 
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Add("User-Agent", "taigobot github.com/icyphox/taigobot")
+	req.Header.Add("User-Agent", "github.com/icyphox/paprika")
 
 	res, err := client.Do(req)
 	if err != nil {
