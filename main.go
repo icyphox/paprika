@@ -4,9 +4,8 @@ import (
 	"log"
 	"net"
 
-	"git.icyphox.sh/paprika/db"
+	"git.icyphox.sh/paprika/database"
 	"git.icyphox.sh/paprika/plugins"
-	"github.com/dgraph-io/badger/v3"
 	"gopkg.in/irc.v3"
 )
 
@@ -45,11 +44,11 @@ func main() {
 		Handler: irc.HandlerFunc(ircHandler),
 	}
 
-	db.DB, err = badger.Open(badger.DefaultOptions("./badger"))
+	database.DB.DB, err = database.Open()
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.DB.Close()
+	defer database.DB.Close()
 
 	client := irc.NewClient(conn, config)
 	err = client.Run()
