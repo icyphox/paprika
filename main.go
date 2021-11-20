@@ -6,6 +6,7 @@ import (
 	"net"
 	"strings"
 
+	"git.icyphox.sh/paprika/config"
 	"git.icyphox.sh/paprika/database"
 	"git.icyphox.sh/paprika/plugins"
 	"gopkg.in/irc.v3"
@@ -101,8 +102,7 @@ func handleChatMessage(c *irc.Client, m *irc.Message) {
 func ircHandler(c *irc.Client, m *irc.Message) {
 	switch m.Command {
 	case "001":
-		// TODO: load this from config
-		c.Write("JOIN #taigobot-test")
+		c.Write(config.ChanJoinStr)
 	case "PRIVMSG":
 		if isCTCPmessage(m) {
 			handleCTCPMessage(c, m)
@@ -113,17 +113,17 @@ func ircHandler(c *irc.Client, m *irc.Message) {
 }
 
 func main() {
-	// TODO: load this from config
-	conn, err := net.Dial("tcp", "irc.rizon.net:6667")
+	conn, err := net.Dial("tcp", config.Host)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer conn.Close()
 
-	config := irc.ClientConfig{
-		Nick:    "paprika112",
-		Pass:    "",
-		User:    "paprika112",
-		Name:    "paprika",
+	ircConfig := irc.ClientConfig{
+		Nick:    config.Nick,
+		Pass:    config.Pass,
+		User:    "paprikabot",
+		Name:    config.Nick,
 		Handler: irc.HandlerFunc(ircHandler),
 	}
 
@@ -133,7 +133,7 @@ func main() {
 	}
 	defer database.DB.Close()
 
-	client := irc.NewClient(conn, config)
+	client := irc.NewClient(conn, ircConfig)
 	err = client.Run()
 	if err != nil {
 		log.Fatal(err)

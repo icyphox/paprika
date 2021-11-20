@@ -1,6 +1,9 @@
 package database
 
 import (
+	"path"
+
+	"git.icyphox.sh/paprika/config"
 	"github.com/dgraph-io/badger/v3"
 )
 
@@ -12,7 +15,9 @@ type database struct {
 }
 
 func Open() (*badger.DB, error) {
-	db, err := badger.Open(badger.DefaultOptions("./badger"))
+	db, err := badger.Open(
+		badger.DefaultOptions(path.Join(config.DbPath, "badger")),
+	)
 	if err != nil {
 		return nil, err
 	}
