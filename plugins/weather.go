@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"git.icyphox.sh/paprika/plugins/location"
+	"git.icyphox.sh/paprika/plugins/time"
 	"git.icyphox.sh/paprika/plugins/weather"
 	"github.com/dgraph-io/badger/v3"
 	"gopkg.in/irc.v3"
@@ -19,11 +20,14 @@ func (Weather) Triggers() []string {
 	return []string{
 		".w",
 		".weather",
+		".t",
+		".time",
 	}
 }
 
 func (Weather) Execute(m *irc.Message) (string, error) {
 	parsed := strings.SplitN(m.Trailing(), " ", 2)
+	trigger := parsed[0]
 	var loc string
 	if len(parsed) != 2 {
 		var err error
@@ -62,9 +66,21 @@ func (Weather) Execute(m *irc.Message) (string, error) {
 	}
 	coordinates := li.Features[0].Geometry.Coordinates
 	label := li.Features[0].Properties.Geocoding.Label
-	info, err := weather.GetWeather(coordinates, label)
-	if err != nil {
-		return "Error getting weather data", err
+
+	switch trigger {
+	case ".t", ".time":
+		time, err := time.GetTime(coordinates, label)
+		if err != nil {
+			return "Error getting time data", err
+		}
+		return time, nil
+	case ".w", ".weather":
+
+		info, err := weather.GetWeather(coordinates, label)
+		if err != nil {
+			return "Error getting weather data", err
+		}
+		return info, nil
 	}
-	return info, nil
+	return "", nil
 }
