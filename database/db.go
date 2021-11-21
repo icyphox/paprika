@@ -16,7 +16,7 @@ type database struct {
 
 func Open() (*badger.DB, error) {
 	db, err := badger.Open(
-		badger.DefaultOptions(path.Join(config.DbPath, "badger")),
+		badger.DefaultOptions(path.Join(config.C.DbPath, "badger")),
 	)
 	if err != nil {
 		return nil, err

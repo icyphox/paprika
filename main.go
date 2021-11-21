@@ -102,7 +102,7 @@ func handleChatMessage(c *irc.Client, m *irc.Message) {
 func ircHandler(c *irc.Client, m *irc.Message) {
 	switch m.Command {
 	case "001":
-		c.Write(config.ChanJoinStr)
+		c.Write(config.SplitChannelList(config.C.Channels))
 	case "PRIVMSG":
 		if isCTCPmessage(m) {
 			handleCTCPMessage(c, m)
@@ -113,17 +113,17 @@ func ircHandler(c *irc.Client, m *irc.Message) {
 }
 
 func main() {
-	conn, err := net.Dial("tcp", config.Host)
+	conn, err := net.Dial("tcp", config.C.Host)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer conn.Close()
 
 	ircConfig := irc.ClientConfig{
-		Nick:    config.Nick,
-		Pass:    config.Pass,
+		Nick:    config.C.Nick,
+		Pass:    config.C.Pass,
 		User:    "paprikabot",
-		Name:    config.Nick,
+		Name:    config.C.Nick,
 		Handler: irc.HandlerFunc(ircHandler),
 	}
 

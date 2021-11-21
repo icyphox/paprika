@@ -1,23 +1,26 @@
 package config
 
 import (
+	"fmt"
+	"io"
 	"log"
 	"os"
-	"strings"
 
-	"github.com/adedomin/indenttext"
+	"gopkg.in/yaml.v3"
 )
 
-var (
-	Nick = "paprika"
-	Pass = ""
-	Host = "irc.rizon.net:6667"
-	Sasl = ""
-	Tls = false
-	ChanJoinStr = "JOIN #taigobot-test"
-	DbPath = ""
-	ApiKeys = make(map[string]string)
-)
+type Config struct {
+	Nick string
+	Pass string
+	Host string
+	Sasl string
+	Tls bool
+	Channels []string
+	DbPath string
+	ApiKeys map[string]string
+}
+
+var C Config
 
 func init() {
 	configPath := ""
@@ -57,53 +60,14 @@ func init() {
 	}
 	defer file.Close()
 
-	firstChannel := true
-	var chanList strings.Builder
-	err = indenttext.Parse(file, func (parents []string, item string, typeof indenttext.ItemType) bool {
-		if len(parents) == 1 && typeof == indenttext.Value {
-			switch parents[0] {
-			case "nick":
-				Nick = item
-			case "pass":
-				Pass = item
-			case "host":
-				Host = item
-			case "sasl":
-				Sasl = item
-			case "tls":
-				if item == "true" {
-					Tls = true
-				} else {
-					Tls = false
-				}
-			case "channels":
-				if firstChannel {
-					chanList.WriteString(item)
-					firstChannel = false
-				} else {
-					chanList.WriteByte(',')
-					chanList.WriteString(item)
-				}
-			case "db-path":
-				DbPath = item
-			}
-		} else if len(parents) == 2 && typeof == indenttext.Value {
-			if parents[0] == "api-keys" {
-				ApiKeys[parents[1]] = item
-			}
-		}
-		return false
-	})
+	data, err := io.ReadAll(file)
+	err = yaml.Unmarshal(data, &C)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if chanList.Len() > 0 {
-		ChanJoinStr = splitChannelList(chanList.String())
-	}
-
-	if DbPath == "" {
-		DbPath = getDbPath()
+	if C.DbPath == "" {
+		C.DbPath = getDbPath()
 	}
 }
 

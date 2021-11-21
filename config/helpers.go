@@ -8,20 +8,14 @@ import (
 	"strings"
 )
 
-func splitChannelList(channels string) string {
-	if len(channels) /* len() on string is bytelen */ + 5 /* for "JOIN " */ <= 510 {
-		return "JOIN " + channels + "\r\n"
-	}
-
-	// channel lenghts longer than 510bytes have to be split
-	chans := strings.Split(channels, ",")
+func SplitChannelList(channels []string) string {
 	lineSize := 0
 	first := true
 	
 	var ret strings.Builder
 
 	// Splits configured list of channels into a safe set of commands
-	for _, channel := range chans {
+	for _, channel := range channels {
 		if lineSize + len(channel) > 510 {
 			lineSize = 0
 			first = true

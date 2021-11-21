@@ -7,23 +7,23 @@ import (
 	"path"
 )
 
-//go:embed example.conf
+//go:embed example.yaml
 var exampleConfig []byte
 
 func configPaths() []string {
 	var configChoices []string
 	// from most desirable to least desirable config path
 	if xdgConfigHome := os.Getenv("XDG_CONFIG_HOME"); xdgConfigHome != "" {
-		configChoices = append(configChoices, path.Join(xdgConfigHome, "paprika.conf"))
+		configChoices = append(configChoices, path.Join(xdgConfigHome, "paprika.yml"))
 	}
 	if home := os.Getenv("HOME"); home != "" {
-		configChoices = append(configChoices, path.Join(home, ".config", "paprika.conf"))
+		configChoices = append(configChoices, path.Join(home, ".config", "paprika.yml"))
 	}
 	systemdConfigDir := os.Getenv("CONFIGURATION_DIRECTORY")
 	if systemdConfigDir != "" {
-		configChoices = append(configChoices, path.Join(systemdConfigDir, "paprika.conf"))
+		configChoices = append(configChoices, path.Join(systemdConfigDir, "paprika.yml"))
 	} else {
-		configChoices = append(configChoices, path.Join("/etc", "paprika.conf"))
+		configChoices = append(configChoices, path.Join("/etc", "paprika.yml"))
 	}
 	return configChoices
 }
@@ -52,7 +52,7 @@ func createConfig(userPath string) {
 		}
 		if file == nil {
 			log.Print("Error: Failed to create config file.")
-			for i, _ := range configChoices {
+			for i := range configChoices {
 				log.Printf("- reason: %s", errs[i])
 			}
 			os.Exit(1)
@@ -82,7 +82,7 @@ func findConfig() *os.File {
 	}
 
 	log.Print("Error: Could not open any config paths.")
-	for i, _ := range configChoices {
+	for i := range configChoices {
 		log.Printf("- %s", errs[i])
 	}
 	os.Exit(1)

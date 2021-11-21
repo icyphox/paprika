@@ -5,33 +5,22 @@ host: irc.rizon.net:6667
 # use the word true or false for this field
 tls: false
 
-# Sever password, sent as "PASS :%s", pass
-# NOTE (xyz:\n:) is declaring a key with no values.
-pass:
-  # put your pass here or make it a name: value pair
-:
+# Sever password, sent as ("PASS :%s", pass)
+#pass: yourpass
 
 # SASL password (cert support tbd) for nickserv identification
-sasl:
-  # put your pass here or make it a name: value pair
-:
+#sasl: mynickserv-pass
 
 # database, and other state, directory
 # defaults to XDG_DATA_HOME or
 # STATE_DIRECTORY if using StateDirectory= in a systemd service unit file
-db-path:
-  # e.g. /var/lib/mybot/state
-:
+#db-path: /var/lib/mybot/state
 
 # a newline delimited list of channels
 channels:
-  # the (#) is a comment, use content start marker (') to escape it.
-  # for syntax-highlighting reasons, you can terminate content with a (') as well.
-  '#taigobot-test'
-:
+  - '#taigobot-test'
 
 # : by itself terminates a list
 # API Keys are stored in a map by IDENT: value
-api-keys:
-  test: fdsafdasfdsafdsa
-:
+#api-keys:
+#  - somesite: somekey
