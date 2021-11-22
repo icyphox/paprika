@@ -30,8 +30,9 @@ func (Weather) Execute(m *irc.Message) (string, error) {
 
 	// TODO: AAAAAAAAAAAAAAAAAAAAAAAAAAA
 	found := false
+	trigger := parsed[0]
 	for _, v := range (Weather{}).Triggers() {
-		if parsed[0] == v {
+		if trigger == v {
 			found = true
 			break
 		}
@@ -39,6 +40,7 @@ func (Weather) Execute(m *irc.Message) (string, error) {
 	if !found {
 		return "", NoReply
 	}
+
 
 	var loc string
 	if len(parsed) != 2 {
