@@ -14,35 +14,32 @@ import (
 
 func handleChatMessage(c *irc.Client, m *irc.Message) {
 	response, err := plugins.ProcessTrigger(m)
+	
+	if errors.Is(err, plugins.NoReply) {
+		return
+	}
+
+	cmd := "PRIVMSG"
+	if errors.Is(err, plugins.IsNotice) {
+		err = nil
+		cmd = "NOTICE"
+	}
+	msg := irc.Message {Command: cmd}
+	target := m.Params[0]
 	split := strings.Split(response, "\n")
 
-	if plugins.IsReplyT(err) {
-		r := err.(*plugins.ReplyT)
-		r.ApplyFlags(m)
-
+	if errors.Is(err, plugins.IsRaw) {
 		for _, line := range split {
-			c.WriteMessage(&irc.Message{
-				Command: m.Command,
-				Params: []string {
-					m.Params[0],
-					line,
-				},
-			})
+			c.Write(line)
 		}
 	} else if err != nil {
-		if !errors.Is(err, plugins.NoReply) {
-			log.Printf("error: %v", err)
-		}
+		log.Printf("error: %v", err)
 	} else {
 		for _, line := range split {
-			c.WriteMessage(&irc.Message{
-				Command: "PRIVMSG",
-				Params: []string{
-					m.Params[0],
-					line,
-				},
-			})
+			msg.Params = []string{target, line}
+			c.WriteMessage(&msg)
 		}
+		return
 	}
 }
 

@@ -19,9 +19,10 @@ func (Ctcp) Triggers() []string {
 func (Ctcp) Execute(m *irc.Message) (string, error) {
 	msg := m.Trailing()
 	if msg == "\x01VERSION\x01" {
-		return "\x01VERSION git.icyphox.sh/paprika\x01", NewReplyT(Notice | DirectMessage)
+		return "\x01VERSION git.icyphox.sh/paprika\x01", IsNotice
 	} else if strings.HasPrefix(msg, "\x01PING") {
-		return msg, NewReplyT(Notice | DirectMessage)
+		return msg, IsNotice
 	}
-	return "\x01INVAL\x01", NewReplyT(Notice | DirectMessage)
+
+	panic("Unreachable!")
 }

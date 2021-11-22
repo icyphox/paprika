@@ -51,5 +51,5 @@ func (Listenbrainz) Execute(m *irc.Message) (string, error) {
 		return np, nil
 	}
 
-	return "", nil
+	panic("Unreachable!")
 }
