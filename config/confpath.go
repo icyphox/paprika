@@ -7,7 +7,7 @@ import (
 	"path"
 )
 
-//go:embed example.yaml
+//go:embed example.yml
 var exampleConfig []byte
 
 func configPaths() []string {

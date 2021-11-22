@@ -24,6 +24,19 @@ func (Weather) Triggers() []string {
 
 func (Weather) Execute(m *irc.Message) (string, error) {
 	parsed := strings.SplitN(m.Trailing(), " ", 2)
+
+	// TODO: AAAAAAAAAAAAAAAAAAAAAAAAAAA
+	found := false
+	for _, v := range (Weather{}).Triggers() {
+		if parsed[0] == v {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return "", NoReply
+	}
+
 	var loc string
 	if len(parsed) != 2 {
 		var err error

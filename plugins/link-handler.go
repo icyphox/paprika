@@ -20,7 +20,6 @@ import (
 // respond (or just have read access to) every message that comes in.
 // The plugins.go file has a special case for handling an 'empty' Triggers string.
 // on such a case, it will simply run Execute on every message that it sees.
-
 func init() {
 	Register(LinkHandler{})
 }
@@ -28,7 +27,7 @@ func init() {
 type LinkHandler struct{}
 
 func (LinkHandler) Triggers() []string {
-	return []string{""} // More than a single empty string here will probs get you undefined behaviour
+	return []string{""}
 }
 
 func (LinkHandler) Execute(m *irc.Message) (string, error) {
@@ -62,7 +61,11 @@ func (LinkHandler) Execute(m *irc.Message) (string, error) {
 		}
 	}
 
-	return output, nil
+	if len(output) > 0 {
+		return output, nil
+	} else {
+		return "", NoReply // We need to NoReply so we don't consume all messages.
+	}
 }
 
 // the three funcs below are taken from:
