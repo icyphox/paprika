@@ -49,6 +49,10 @@ func unlikelyDirectMessage(target string) bool {
 	}
 
 	sym := target[0] // we only care about the byte (ASCII)
+	return likelyInvalidNickChr(sym)
+}
+
+func likelyInvalidNickChr(sym byte) bool {
 	// Is one of: !"#$%&'()*+,_./
 	// or one of: ;<=>?@
 	// If your IRCd uses symbols outside of this range,
