@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"strconv"
 	"strings"
 
@@ -77,12 +78,12 @@ var (
 			err = item.Value(func(val []byte) error {
 				if bytes.Contains(val, search) {
 					quote = string(val)
-					keys := bytes.SplitN(key, []byte{' '}, 2)
-					if len(keys) != 2 {
+					keys := bytes.SplitN(key, []byte{' '}, 3)
+					if len(keys) != 3 {
 						log.Printf("quotes.go: Key Error: %s is not in expected format", key)
 						return KeyEncodingError
 					}
-					num, err = database.DecodeNumber(keys[1])
+					num, err = database.DecodeNumber(keys[2])
 					if err != nil {
 						return err
 					} else {
@@ -181,6 +182,8 @@ func getQuote(nick string, qnum int, keyPrefix []byte) (string, error) {
 			}
 		} else if num > total {
 			return badger.ErrKeyNotFound
+		} else if num == randomQuote {
+			num = rand.Intn(total) + 1
 		}
 
 		encodeQnum, err := database.EncodeNumber(num)
@@ -211,6 +214,7 @@ func getQuote(nick string, qnum int, keyPrefix []byte) (string, error) {
 	}
 }
 
+const randomQuote = 0
 const (
 	addQ int = iota
 	getQ
@@ -229,7 +233,7 @@ func (Quotes) Execute(m *irc.Message) (string, error) {
 	cState := getQ
 
 	var nick string
-	keyPrefix := []byte(m.Params[0] + "/")
+	keyPrefix := []byte(m.Params[0] + " ")
 	for i := 1 ;i < len(params); i++ {
 		word := params[i]
 	back:
@@ -295,5 +299,10 @@ func (Quotes) Execute(m *irc.Message) (string, error) {
 			}
 		}
 	}
-	return "Invalid number of parameters.", nil
+	// If no number given, use 0 to indicate random quote.
+	if pState == parseGetParam {
+		return getQuote(nick, randomQuote, keyPrefix)
+	} else {
+		return "Invalid number of parameters.", nil
+	}
 }
