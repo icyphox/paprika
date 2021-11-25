@@ -42,7 +42,10 @@ func getQuoteTotal(txn *badger.Txn, keyPrefix []byte) (int, error) {
 		return 0, err
 	}
 	res, err := strconv.Atoi(string(it))
-	if err != nil {
+	if _, ok := err.(*strconv.NumError); ok {
+		log.Printf("quotes.go: Warning: Something is wrong with the value in key: %s", keyPrefix)
+		return 0, nil // return 0 in hopes of it being overwritten
+	} else if err != nil {
 		return 0, err
 	}
 	return res, nil
@@ -183,6 +186,7 @@ func getQuote(nick string, qnum int, keyPrefix []byte) (string, error) {
 		} else if num > total {
 			return badger.ErrKeyNotFound
 		} else if num == randomQuote {
+			// [1, total+1)
 			num = rand.Intn(total) + 1
 		}
 
