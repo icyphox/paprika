@@ -26,7 +26,7 @@ func (Decide) Execute(m *irc.Message) (string, error) {
 	if trigger == ".decide" {
 		var terms []string
 		var currTerm strings.Builder
-		for _, word := range params {
+		for _, word := range params[1:] {
 			if word == "" {
 				continue
 			}
