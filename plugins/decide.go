@@ -16,7 +16,7 @@ func init() {
 }
 
 func (Decide) Triggers() []string {
-	return []string{".decide",".dice"}
+	return []string{".decide", ".dice", ".roll"}
 }
 
 func (Decide) Execute(m *irc.Message) (string, error) {
@@ -50,7 +50,7 @@ func (Decide) Execute(m *irc.Message) (string, error) {
 		} else {
 			return terms[rand.Intn(len(terms))], nil
 		}
-	} else if trigger == ".dice" {
+	} else if trigger == ".dice" || trigger == ".roll" {
 		if len(params) != 2 {
 			return "usage: .dice NNdXX - where NN is 1-36 and XX is 2-64", nil
 		}
