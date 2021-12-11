@@ -12,5 +12,5 @@ require (
 
 require (
 	github.com/zsefvlol/timezonemapper v1.0.0
-	google.golang.org/api v0.62.0 // indirect
+	google.golang.org/api v0.62.0
 )

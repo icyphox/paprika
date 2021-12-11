@@ -4,8 +4,10 @@ import (
 	"context"
 	"net/url"
 	"strings"
+	"time"
 
 	"git.icyphox.sh/paprika/config"
+	"github.com/dustin/go-humanize"
 	"google.golang.org/api/option"
 	"google.golang.org/api/youtube/v3"
 )
@@ -71,7 +73,7 @@ func YoutubeDescription(url *url.URL) (string, error) {
 	out.WriteString("03")
 	out.WriteRune('↑')
 	out.WriteByte(' ')
-	likes := IntersperseThousandsSepInt(int(snippet.Statistics.LikeCount), ',')
+	likes := humanize.Comma(int64(snippet.Statistics.LikeCount))
 	out.WriteString(likes)
 	out.WriteByte(3)
 	out.WriteByte(' ')
@@ -87,7 +89,7 @@ func YoutubeDescription(url *url.URL) (string, error) {
 
 	// Views
 	out.WriteByte(2)
-	views := IntersperseThousandsSepInt(int(snippet.Statistics.ViewCount), ',')
+	views := humanize.Comma(int64(snippet.Statistics.ViewCount))
 	out.WriteString(views)
 	out.WriteByte(2)
 	out.WriteString(" Views - ")
@@ -96,11 +98,16 @@ func YoutubeDescription(url *url.URL) (string, error) {
 	out.WriteByte(2)
 	out.WriteString(snippet.Snippet.ChannelTitle)
 	out.WriteByte(2)
-	out.WriteString(" on ")
+	out.WriteByte(' ')
 	// date
-	out.WriteByte(2)
-	out.WriteString(snippet.Snippet.PublishedAt[:10])
-	out.WriteByte(2)
+	publishedParsed, err := time.Parse(time.RFC3339, snippet.Snippet.PublishedAt)
+	var published string
+	if err == nil {
+		published = humanize.Time(publishedParsed)
+	} else {
+		published = snippet.Snippet.PublishedAt[:10]
+	}
+	out.WriteString(published)
 
 
 	return out.String(), nil
