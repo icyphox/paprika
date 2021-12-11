@@ -16,7 +16,9 @@ func init() {
 type Listenbrainz struct{}
 
 func (Listenbrainz) Triggers() []string {
-	return []string{".np", ".lbz"}
+	// TODO: removing .np from here until we figure out how
+	// it can co-exist with Last.fm
+	return []string{".lbz"}
 }
 
 func (Listenbrainz) Execute(m *irc.Message) (string, error) {
