@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"git.icyphox.sh/paprika/config"
@@ -21,7 +22,7 @@ type ListenInfo struct {
 			} `json:"album"`
 			Name string `json:"name"`
 			Date struct {
-				UnixTimestamp int `json:"uts"`
+				UnixTimestamp string `json:"uts"`
 			} `json:"date"`
 			Attr struct {
 				NowPlaying string `json:"nowplaying"`
@@ -32,7 +33,6 @@ type ListenInfo struct {
 
 func getRecentTracks(url string) (*ListenInfo, error) {
 	li := ListenInfo{}
-	fmt.Println(url)
 	r, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -69,13 +69,16 @@ func NowPlaying(user string) (string, error) {
 			track.Album.Text,
 		), nil
 	} else {
+		strT := track.Date.UnixTimestamp
+		ts, _ := strconv.Atoi(strT)
+		t := time.Unix(int64(ts), 0)
 		return fmt.Sprintf(
 			"%s listened to \"%s\" by \x02%s\x02, from the album \x02%s\x02, %s",
 			user,
 			track.Name,
 			track.Artist.Text,
 			track.Album.Text,
-			humanize.Time(time.Unix(int64(track.Date.UnixTimestamp), 0)),
+			humanize.Time(t),
 		), nil
 	}
 }
