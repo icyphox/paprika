@@ -15,8 +15,8 @@ type Config struct {
 	Sasl string
 	Tls bool
 	Channels []string
-	DbPath string
-	ApiKeys map[string]string
+	DbPath string `yaml:"db-path"`
+	ApiKeys map[string]string `yaml:"api-keys"`
 }
 
 var C Config
