@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 
 	"gopkg.in/irc.v3"
@@ -82,4 +83,19 @@ func ProcessTrigger(m *irc.Message) (string, error) {
 		}
 	}
 	return "", NoReply // No plugin matched, so we need to Ignore.
+}
+
+func IntersperseThousandsSepInt(num int, sep rune) string {
+	numstr := strconv.Itoa(num)
+	acc := ""
+
+	i := 0
+	for j := len(numstr) - 1; j > -1; j-- {
+		if i != 0 && i % 3 == 0 {
+			acc = "," + acc
+		}
+		acc = string(numstr[j]) + acc
+		i++
+	}
+	return acc
 }
