@@ -2,6 +2,8 @@ package plugins
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/url"
 	"strings"
 	"time"
@@ -10,15 +12,78 @@ import (
 	"github.com/dustin/go-humanize"
 	"google.golang.org/api/option"
 	"google.golang.org/api/youtube/v3"
+	"gopkg.in/irc.v3"
 )
 
-func YoutubeDescription(url *url.URL) (string, error) {
-	apiKey := ""
-	ok := false
-	if apiKey, ok = config.C.ApiKeys["youtube"]; !ok {
-		return "[Youtube] No API Key!", nil
+type Youtube struct{}
+
+func (Youtube) Triggers() []string {
+	return []string{".yt"}
+}
+
+func (Youtube) Execute(m *irc.Message) (string, error) {
+	parsed := strings.SplitN(m.Trailing(), " ", 2)
+	if len(parsed) == 1 && parsed[0] == ".yt" {
+		return "usage: .yt QUERY", nil
+	} else if parsed[0] != ".yt" {
+		return "", NoReply // ???
 	}
 
+	
+	return YoutubeSearch(parsed[1])
+}
+
+func init() {
+	Register(Youtube{})
+}
+
+var NoYtApiKey = errors.New("No Youtube Api Key")
+
+func constructApiService() (*youtube.Service, error) {
+	if apiKey, ok := config.C.ApiKeys["youtube"]; ok {
+		service, err := youtube.NewService(
+			context.TODO(),
+			option.WithAPIKey(apiKey),
+			option.WithUserAgent("github.com/icyphox/paprika"),
+			option.WithTelemetryDisabled(), // wtf?
+		)
+		return service, err
+	} else {
+		return nil, NoYtApiKey
+	}
+}
+
+func YoutubeSearch(query string) (string, error) {
+	service, err := constructApiService()
+	if err != nil {
+		return "", err
+	}
+
+	search := youtube.NewSearchService(service).List([]string{});
+	search = search.Q(query)
+	res, err := search.Do()
+	if err != nil {
+		return "", err
+	}
+
+	if len(res.Items) == 0 ||
+		res.Items[0].Id == nil ||
+		res.Items[0].Id.VideoId == "" {
+		return "[Youtube] No videos found.", nil
+	}
+	item := res.Items[0]
+
+	vid := item.Id.VideoId
+	println(vid)
+	description, err := YoutubeDescription(vid)
+	if err != nil {
+		return description, err
+	}
+
+	return fmt.Sprintf("%s - https://youtu.be/%s", description, vid), nil
+}
+
+func YoutubeDescriptionFromUrl(url *url.URL) (string, error) {
 	var vid string
 	if url.Host == "youtu.be" {
 		vid = url.Path[1:]
@@ -26,22 +91,20 @@ func YoutubeDescription(url *url.URL) (string, error) {
 		vid = url.Query().Get("v")
 	}
 
+	return YoutubeDescription(vid)
+}
+
+func YoutubeDescription(vid string) (string, error) {
 	if vid == "" {
 		return "[Youtube] Could not find video id.", nil
 	}
 
-	service, err := youtube.NewService(
-		context.TODO(),
-		option.WithAPIKey(apiKey),
-		option.WithUserAgent("github.com/icyphox/paprika"),
-		option.WithTelemetryDisabled(), // wtf?
-	)
+	service, err := constructApiService()
 	if err != nil {
 		return "", err
 	}
 
 	vidservice := youtube.NewVideosService(service)
-
 	vcall := vidservice.List([]string{"snippet","statistics","contentDetails"});
 	vcall = vcall.Id(vid)
 	vres, err := vcall.Do()
@@ -54,52 +117,17 @@ func YoutubeDescription(url *url.URL) (string, error) {
 	}
 
 	snippet := vres.Items[0]
-	var out strings.Builder
+	if snippet.Snippet == nil || snippet.ContentDetails == nil || snippet.Statistics == nil {
+		return "[Youtube] API Error. Required fields are nil.", nil
+	}
 
-	
-	// Title
-	out.WriteByte(2)
-	out.WriteString(snippet.Snippet.Title)
-	out.WriteByte(2)
-
-	// Duration
-	out.WriteByte(' ')
+	title := snippet.Snippet.Title
 	duration := strings.ToLower(snippet.ContentDetails.Duration[2:])
-	out.WriteString(duration)
-	out.WriteString(" - ")
-
-	// Likes
-	out.WriteByte(3)
-	out.WriteString("03")
-	out.WriteRune('↑')
-	out.WriteByte(' ')
 	likes := humanize.Comma(int64(snippet.Statistics.LikeCount))
-	out.WriteString(likes)
-	out.WriteByte(3)
-	out.WriteByte(' ')
-	// Dislikes
-	// Deprecated on 2021, Dec 13 ????
-	out.WriteByte(3)
-	out.WriteString("04")
-	out.WriteRune('↓')
-	out.WriteByte(' ')
-	out.WriteString("???")
-	out.WriteByte(3)
-	out.WriteString(" - ")
-
-	// Views
-	out.WriteByte(2)
+	// disabled
+	// dislikes := humanize.Comma(int64(snippet.Statistics.DislikeCount))
 	views := humanize.Comma(int64(snippet.Statistics.ViewCount))
-	out.WriteString(views)
-	out.WriteByte(2)
-	out.WriteString(" Views - ")
-
-	// Channel / Author
-	out.WriteByte(2)
-	out.WriteString(snippet.Snippet.ChannelTitle)
-	out.WriteByte(2)
-	out.WriteByte(' ')
-	// date
+	channelName := snippet.Snippet.ChannelTitle
 	publishedParsed, err := time.Parse(time.RFC3339, snippet.Snippet.PublishedAt)
 	var published string
 	if err == nil {
@@ -107,8 +135,15 @@ func YoutubeDescription(url *url.URL) (string, error) {
 	} else {
 		published = snippet.Snippet.PublishedAt[:10]
 	}
-	out.WriteString(published)
 
 
-	return out.String(), nil
+	return fmt.Sprintf(
+		"\x02%s\x02 %s - \x0303↑ %s\x03 \x0304↓ ?\x03 - \x02%s\x02 views - \x02%s\x02 %s",
+		title,
+		duration,
+		likes,
+		views,
+		channelName,
+		published,
+	), nil
 }
