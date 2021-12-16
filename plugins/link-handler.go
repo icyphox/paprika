@@ -32,7 +32,7 @@ func (LinkHandler) Triggers() []string {
 
 func (LinkHandler) Execute(m *irc.Message) (string, error) {
 
-	var output string
+	var output strings.Builder
 
 	// in PRIVMSG's case, the second (first, if counting from 0) parameter
 	// is the string that contains the complete message.
@@ -47,9 +47,14 @@ func (LinkHandler) Execute(m *irc.Message) (string, error) {
 		// this if statement block will be used for content that is
 		// non-generic. I.e it belongs to a specific website, like
 		// stackoverflow or youtube.
-		if u.Hostname() == "youtube.com" || u.Hostname() == "youtu.be" {
+		if u.Hostname() == "www.youtube.com" || u.Hostname() == "youtube.com" || u.Hostname() == "youtu.be" {
 			// TODO finish this
-			output += "[Youtube] yeah you definitely posted a youtube link\n"
+			yt, err := YoutubeDescriptionFromUrl(u)
+			if err != nil {
+				return "", err
+			}
+			output.WriteString(yt)
+			output.WriteByte('\n')
 		} else if len(u.Hostname()) > 0 {
 			desc, err := getDescriptionFromURL(value)
 			if err != nil {
@@ -57,12 +62,12 @@ func (LinkHandler) Execute(m *irc.Message) (string, error) {
 				fmt.Println(err)
 				continue
 			}
-			output += fmt.Sprintf("[URL] %s (%s)\n", desc, u.Hostname())
+			output.WriteString(fmt.Sprintf("[URL] %s (%s)\n", desc, u.Hostname()))
 		}
 	}
 
-	if len(output) > 0 {
-		return output, nil
+	if output.Len() > 0 {
+		return output.String(), nil
 	} else {
 		return "", NoReply // We need to NoReply so we don't consume all messages.
 	}
