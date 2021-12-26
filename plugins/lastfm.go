@@ -35,7 +35,7 @@ func (LastFM) Execute(m *irc.Message) (string, error) {
 			}
 			return "Successfully set Last.fm username", nil
 		} else {
-			return "usage: .lfm <username>", nil
+			return "Usage: .lfm <username>", nil
 		}
 	case ".np":
 		user, err := lastfm.GetUser(m.Prefix.Name)

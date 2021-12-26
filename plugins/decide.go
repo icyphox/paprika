@@ -44,7 +44,7 @@ func (Decide) Execute(m *irc.Message) (string, error) {
 		}
 
 		if len(terms) < 1 {
-			return "usage: .decide proposition 1 [ or proposition 2 [ or proposition n ... ] ]", nil
+			return "Usage: .decide proposition 1 [ or proposition 2 [ or proposition n ... ] ]", nil
 		} else if len(terms) < 2 {
 			return []string{"Yes.", "No."}[rand.Intn(2)], nil
 		} else {

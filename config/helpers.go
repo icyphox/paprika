@@ -11,12 +11,12 @@ import (
 func SplitChannelList(channels []string) string {
 	lineSize := 0
 	first := true
-	
+
 	var ret strings.Builder
 
 	// Splits configured list of channels into a safe set of commands
 	for _, channel := range channels {
-		if lineSize + len(channel) > 510 {
+		if lineSize+len(channel) > 510 {
 			lineSize = 0
 			first = true
 			ret.WriteByte('\r')
@@ -63,7 +63,7 @@ func getDbPath() string {
 }
 
 func usage() {
-	println("usage: paprika [init] [-c config]\n")
+	println("Usage: paprika [init] [-c config]\n")
 	println("  init       Initialize configuration for the bot.")
 	println("  -c config  Use config given on the command line.\n")
 	os.Exit(1)

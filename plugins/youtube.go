@@ -24,12 +24,11 @@ func (Youtube) Triggers() []string {
 func (Youtube) Execute(m *irc.Message) (string, error) {
 	parsed := strings.SplitN(m.Trailing(), " ", 2)
 	if len(parsed) == 1 && parsed[0] == ".yt" {
-		return "usage: .yt QUERY", nil
+		return "Usage: .yt QUERY", nil
 	} else if parsed[0] != ".yt" {
 		return "", NoReply // ???
 	}
 
-	
 	return YoutubeSearch(parsed[1])
 }
 
@@ -59,7 +58,7 @@ func YoutubeSearch(query string) (string, error) {
 		return "", err
 	}
 
-	search := youtube.NewSearchService(service).List([]string{});
+	search := youtube.NewSearchService(service).List([]string{})
 	search = search.Q(query)
 	res, err := search.Do()
 	if err != nil {
@@ -105,7 +104,7 @@ func YoutubeDescription(vid string) (string, error) {
 	}
 
 	vidservice := youtube.NewVideosService(service)
-	vcall := vidservice.List([]string{"snippet","statistics","contentDetails"});
+	vcall := vidservice.List([]string{"snippet", "statistics", "contentDetails"})
 	vcall = vcall.Id(vid)
 	vres, err := vcall.Do()
 	if err != nil {
@@ -135,7 +134,6 @@ func YoutubeDescription(vid string) (string, error) {
 	} else {
 		published = snippet.Snippet.PublishedAt[:10]
 	}
-
 
 	return fmt.Sprintf(
 		"\x02%s\x02 %s - \x0303↑ %s\x03 \x0304↓ ?\x03 - \x02%s\x02 views - \x02%s\x02 %s",

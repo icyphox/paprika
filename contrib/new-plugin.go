@@ -1,6 +1,6 @@
 package main
 
-// usage: go run new-plugin.go <name>
+// Usage: go run new-plugin.go <name>
 
 import (
 	"fmt"
