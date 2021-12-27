@@ -29,7 +29,7 @@ func (Seen) Execute(m *irc.Message) (string, error) {
 	if strings.HasPrefix(m.Params[1], ".seen") {
 		params := strings.Split(m.Trailing(), " ")
 		if len(params) == 1 {
-			return ".seen nickname", nil
+			return "Usage: .seen <nickname>", nil
 		}
 
 		if seen, ok := LastSeen.Load(params[1]); ok {
