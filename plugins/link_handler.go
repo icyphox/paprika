@@ -1,6 +1,3 @@
-// Plugin that looks for links and provides additional info whenever
-// someone posts an URL.
-// Author: nojusr
 package plugins
 
 import (
@@ -31,6 +28,10 @@ func (LinkHandler) Triggers() []string {
 }
 
 func (LinkHandler) Execute(m *irc.Message) (string, error) {
+	// The message starts with a '.', so we ignore it.
+	if strings.HasPrefix(m.Params[1], ".") {
+		return "", NoReply
+	}
 
 	var output strings.Builder
 
