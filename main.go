@@ -13,8 +13,11 @@ import (
 )
 
 func handleChatMessage(c *irc.Client, m *irc.Message) {
+	// Trim leading and trailing spaces to not trip up our
+	// plugins.
+	m.Params[1] = strings.TrimSpace(m.Params[1])
 	response, err := plugins.ProcessTrigger(m)
-	
+
 	if errors.Is(err, plugins.NoReply) {
 		return
 	}
@@ -24,7 +27,7 @@ func handleChatMessage(c *irc.Client, m *irc.Message) {
 		err = nil
 		cmd = "NOTICE"
 	}
-	msg := irc.Message {Command: cmd}
+	msg := irc.Message{Command: cmd}
 	target := m.Params[0]
 	split := strings.Split(response, "\n")
 
