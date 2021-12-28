@@ -95,7 +95,7 @@ func (t Tell) Execute(m *irc.Message) (string, error) {
 		err := database.DB.Update(func(txn *badger.Txn) error {
 			it := txn.NewIterator(badger.DefaultIteratorOptions)
 			defer it.Close()
-			prefix := []byte("tell/" + m.Prefix.Name)
+			prefix := []byte("tell/" + strings.ToLower(m.Prefix.Name))
 			for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
 				item := it.Item()
 				k := item.Key()
@@ -143,7 +143,6 @@ func (t Tell) Execute(m *irc.Message) (string, error) {
 				),
 			)
 		}
-
 		return strings.Join(tellsFmtd, "\n"), &IsPrivateNotice{To: tells[0].To}
 	}
 }
