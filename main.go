@@ -29,6 +29,13 @@ func handleChatMessage(c *irc.Client, m *irc.Message) {
 	}
 	msg := irc.Message{Command: cmd}
 	target := m.Params[0]
+
+	if serr, ok := err.(*plugins.IsPrivateNotice); ok {
+		target = serr.To
+		cmd = "NOTICE"
+		err = nil
+	}
+
 	split := strings.Split(response, "\n")
 
 	if errors.Is(err, plugins.IsRaw) {
