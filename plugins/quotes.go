@@ -52,21 +52,21 @@ func getQuoteTotal(txn *badger.Txn, keyPrefix []byte) (int, error) {
 }
 
 func getAndIncrementQuoteTotal(txn *badger.Txn, keyPrefix []byte) (int, error) {
-total, err := getQuoteTotal(txn, keyPrefix)
-if err == badger.ErrKeyNotFound {
-	total = 0
-} else if err != nil {
-	return 0, err
-}
-total++
-return total, txn.Set(keyPrefix, []byte(strconv.Itoa(total)))
+	total, err := getQuoteTotal(txn, keyPrefix)
+	if err == badger.ErrKeyNotFound {
+		total = 0
+	} else if err != nil {
+		return 0, err
+	}
+	total++
+	return total, txn.Set(keyPrefix, []byte(strconv.Itoa(total)))
 }
 
 func findQuotes(nick string, keyPrefix, search []byte) (string, error) {
-var (
-	num int
-	total int
-	quote string
+	var (
+		num   int
+		total int
+		quote string
 	)
 
 	err := database.DB.DB.View(func(txn *badger.Txn) error {
@@ -157,9 +157,9 @@ func addQuote(keyPrefix, quote []byte) (string, error) {
 
 func getQuote(nick string, qnum int, keyPrefix []byte) (string, error) {
 	var (
-		num int
-		total int
-		quote string
+		num      int
+		total    int
+		quote    string
 		negative bool
 	)
 
@@ -238,7 +238,7 @@ func (Quotes) Execute(m *irc.Message) (string, error) {
 
 	var nick string
 	keyPrefix := []byte(m.Params[0] + " ")
-	for i := 1 ;i < len(params); i++ {
+	for i := 1; i < len(params); i++ {
 		word := params[i]
 	back:
 		if len(word) == 0 {
@@ -290,7 +290,7 @@ func (Quotes) Execute(m *irc.Message) (string, error) {
 				pState = parseGetParam
 			}
 		case parseGetParam:
-			if i + 1 == len(params) {
+			if i+1 == len(params) {
 				qnum, err := strconv.Atoi(word)
 				if err != nil {
 					return findQuotes(nick, keyPrefix, []byte(word))

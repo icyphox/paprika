@@ -24,7 +24,7 @@ func (Youtube) Triggers() []string {
 func (Youtube) Execute(m *irc.Message) (string, error) {
 	parsed := strings.SplitN(m.Trailing(), " ", 2)
 	if len(parsed) == 1 && parsed[0] == ".yt" {
-		return "Usage: .yt QUERY", nil
+		return "Usage: .yt <query>", nil
 	} else if parsed[0] != ".yt" {
 		return "", NoReply // ???
 	}
