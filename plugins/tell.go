@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/gob"
 	"fmt"
-	"io"
 	"sort"
 	"strings"
 	"time"
@@ -54,8 +53,9 @@ func (t *Tell) saveTell() error {
 }
 
 // Decodes tell data from encoding/gob into a Tell.
-func getTell(data io.Reader) (*Tell, error) {
-	dec := gob.NewDecoder(data)
+func getTell(data []byte) (*Tell, error) {
+	r := bytes.NewReader(data)
+	dec := gob.NewDecoder(r)
 	t := Tell{}
 	if err := dec.Decode(&t); err != nil {
 		return nil, err
@@ -100,26 +100,30 @@ func (t Tell) Execute(m *irc.Message) (string, error) {
 				item := it.Item()
 				k := item.Key()
 				err := item.Value(func(v []byte) error {
-					var r bytes.Reader
-					tell, err := getTell(&r)
+					tell, err := getTell(v)
 					if err != nil {
-						return err
+						return fmt.Errorf("degobbing: %w", err)
 					}
 					tells = append(tells, *tell)
 					return nil
 				})
 				if err != nil {
-					return err
+					return fmt.Errorf("iterating: %w", err)
 				}
 				err = txn.Delete(k)
 				if err != nil {
-					return err
+					return fmt.Errorf("deleting key: %w", err)
 				}
 			}
 			return nil
 		})
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("fetching tells: %w", err)
+		}
+
+		// No tells for this user.
+		if len(tells) == 0 {
+			return "", NoReply
 		}
 
 		// Sort tells by time.
@@ -140,6 +144,6 @@ func (t Tell) Execute(m *irc.Message) (string, error) {
 			)
 		}
 
-		return strings.Join(tellsFmtd, "\n"), &IsPrivateNotice{To: t.To}
+		return strings.Join(tellsFmtd, "\n"), &IsPrivateNotice{To: tells[0].To}
 	}
 }
