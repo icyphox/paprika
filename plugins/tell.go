@@ -133,16 +133,14 @@ func (t Tell) Execute(m *irc.Message) (string, error) {
 
 		// Formatted tells in a slice, for joining into a string
 		// later.
-		tellsFmtd := []string{}
+		tellsFmtd := strings.Builder{}
 		for _, tell := range tells {
-			tellsFmtd = append(
-				tellsFmtd,
-				fmt.Sprintf(
-					"%s sent you a message %s: %s",
-					tell.From, humanize.Time(tell.Time), tell.Message,
-				),
+			s := fmt.Sprintf(
+				"%s sent you a message %s: %s\n",
+				tell.From, humanize.Time(tell.Time), tell.Message,
 			)
+			tellsFmtd.WriteString(s)
 		}
-		return strings.Join(tellsFmtd, "\n"), &IsPrivateNotice{To: tells[0].To}
+		return tellsFmtd.String(), &IsPrivateNotice{To: tells[0].To}
 	}
 }
