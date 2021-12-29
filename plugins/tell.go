@@ -139,7 +139,7 @@ func (t Tell) Execute(m *irc.Message) (string, error) {
 
 		// Sort tells by time.
 		sort.Slice(tells, func(i, j int) bool {
-			return tells[i].Time.Before(tells[j].Time)
+			return tells[j].Time.Before(tells[i].Time)
 		})
 
 		// Formatted tells in a slice, for joining into a string
