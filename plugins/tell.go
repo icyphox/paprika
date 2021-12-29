@@ -2,9 +2,10 @@ package plugins
 
 import (
 	"bytes"
-	"crypto/rand"
+	"crypto/sha1"
 	"encoding/gob"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 	"time"
@@ -31,6 +32,8 @@ func (Tell) Triggers() []string {
 }
 
 // Encodes message into encoding/gob for storage.
+// We use a hash of the message in the key to ensure
+// we don't queue dupes.
 func (t *Tell) saveTell() error {
 	data := bytes.Buffer{}
 	enc := gob.NewEncoder(&data)
@@ -38,13 +41,12 @@ func (t *Tell) saveTell() error {
 	if err := enc.Encode(t); err != nil {
 		return err
 	}
-	// Store key as 'tell/nick/randbytes'; should help with
+	// Store key as 'tell/nick/hash'; should help with
 	// easy prefix scans for tells.
-	rnd := make([]byte, 8)
-	rand.Read(rnd)
+	hash := hashMessage(t.Message)
 
 	key := []byte(fmt.Sprintf("tell/%s/", t.To))
-	key = append(key, rnd...)
+	key = append(key, hash...)
 	err := database.DB.Set(key, data.Bytes())
 	if err != nil {
 		return err
@@ -62,6 +64,15 @@ func getTell(data []byte) (*Tell, error) {
 	}
 
 	return &t, nil
+}
+
+// Hash (SHA1) a message for use as key.
+// Helps ensure we don't queue the same
+// message over and over.
+func hashMessage(msg string) []byte {
+	h := sha1.New()
+	io.WriteString(h, msg)
+	return h.Sum(nil)
 }
 
 func (t Tell) Execute(m *irc.Message) (string, error) {
