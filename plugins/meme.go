@@ -20,7 +20,12 @@ var n []byte
 
 func (Meme) Triggers() []string {
 	n, _ = base64.StdEncoding.DecodeString("bmlnZ2Vy")
-	return []string{"." + string(n), ".kiss"}
+	return []string{
+		"." + string(n),
+		".kiss",
+		".increase",
+		".decrease",
+	}
 }
 
 func (Meme) Execute(m *irc.Message) (string, error) {
@@ -51,6 +56,11 @@ func (Meme) Execute(m *irc.Message) (string, error) {
 			"%s \x02\x034 。。・゜゜・。。・❤️ %s ❤️ \x03\x02",
 			kaomoji[rand.Intn(len(kaomoji))],
 			target,
+		), nil
+	case ".increase", ".decrease":
+		return fmt.Sprintf(
+			"\x02[QUALITY OF CHANNEL SIGNIFICANTLY %sD]\x02",
+			strings.ToUpper(trigger[1:]),
 		), nil
 	}
 	return "", nil
