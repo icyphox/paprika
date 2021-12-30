@@ -25,6 +25,8 @@ func (Meme) Triggers() []string {
 		".kiss",
 		".increase",
 		".decrease",
+		".sniff",
+		".hug",
 	}
 }
 
@@ -69,6 +71,8 @@ func (Meme) Execute(m *irc.Message) (string, error) {
 		), nil
 	case ".sniff":
 		return fmt.Sprintf("huffs %s's hair while sat behind them on the bus.", target), nil
+	case ".hug":
+		return fmt.Sprintf("(>^_^)>❤️ %s ❤️<(^o^<)", target), nil
 
 	}
 	return "", nil
