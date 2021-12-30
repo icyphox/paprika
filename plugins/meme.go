@@ -3,7 +3,9 @@ package plugins
 import (
 	"encoding/base64"
 	"fmt"
+	"math/rand"
 	"strings"
+	"time"
 
 	"gopkg.in/irc.v3"
 )
@@ -18,7 +20,7 @@ var n []byte
 
 func (Meme) Triggers() []string {
 	n, _ = base64.StdEncoding.DecodeString("bmlnZ2Vy")
-	return []string{"." + string(n)}
+	return []string{"." + string(n), ".kiss"}
 }
 
 func (Meme) Execute(m *irc.Message) (string, error) {
@@ -38,6 +40,18 @@ func (Meme) Execute(m *irc.Message) (string, error) {
 			target = "IRSSucks"
 		}
 		return fmt.Sprintf("%s is a %s", target, string(n)), nil
+	case ".kiss", ".love":
+		rand.Seed(time.Now().Unix())
+		kaomoji := []string{
+			"(●´□`)", "(｡･ω･｡)ﾉ", "(｡’▽’｡)",
+			"(ෆ ͒•∘̬• ͒)◞", "( •ॢ◡-ॢ)-", "⁽⁽ପ( •ु﹃ •ु)​.⑅*",
+			"(๑ Ỡ ◡͐ Ỡ๑)ﾉ", "◟(◔ั₀◔ั )◞ ༘",
+		}
+		return fmt.Sprintf(
+			"%s \x02\x034 。。・゜゜・。。・❤️ %s ❤️ \x03\x02",
+			kaomoji[rand.Intn(len(kaomoji))],
+			target,
+		), nil
 	}
 	return "", nil
 }
