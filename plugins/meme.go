@@ -31,6 +31,7 @@ func (Meme) Triggers() []string {
 func (Meme) Execute(m *irc.Message) (string, error) {
 	parts := strings.SplitN(m.Trailing(), " ", 2)
 	trigger := parts[0]
+	rand.Seed(time.Now().Unix())
 	var target string
 	if len(parts) > 1 {
 		target = parts[1]
@@ -44,9 +45,13 @@ func (Meme) Execute(m *irc.Message) (string, error) {
 		if m.Prefix.Name == "IRSSucks" {
 			target = "IRSSucks"
 		}
-		return fmt.Sprintf("%s is a %s", target, string(n)), nil
+		word := string(n)
+		if rand.Intn(10) == 8 {
+			// Easter egg! Only teh cool h4x0rz will get this.
+			word = "bmlnZ2Vy"
+		}
+		return fmt.Sprintf("%s is a %s", target, word), nil
 	case ".kiss", ".love":
-		rand.Seed(time.Now().Unix())
 		kaomoji := []string{
 			"(●´□`)", "(｡･ω･｡)ﾉ", "(｡’▽’｡)",
 			"(ෆ ͒•∘̬• ͒)◞", "( •ॢ◡-ॢ)-", "⁽⁽ପ( •ु﹃ •ु)​.⑅*",
@@ -62,6 +67,9 @@ func (Meme) Execute(m *irc.Message) (string, error) {
 			"\x02[QUALITY OF CHANNEL SIGNIFICANTLY %sD]\x02",
 			strings.ToUpper(trigger[1:]),
 		), nil
+	case ".sniff":
+		return fmt.Sprintf("huffs %s's hair while sat behind them on the bus.", target), nil
+
 	}
 	return "", nil
 }
