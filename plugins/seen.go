@@ -22,9 +22,19 @@ func (Seen) Triggers() []string {
 
 var LastSeen sync.Map
 
+type LastSeenInfo struct {
+	// The last message the user sent.
+	Message string
+	// The last time this user was seen.
+	Time time.Time
+}
+
 func (Seen) Execute(m *irc.Message) (string, error) {
-	// we just saw this user so.
-	LastSeen.Store(m.Name, time.Now())
+	LastSeen.Store(m.Name, LastSeenInfo{
+		Message: m.Trailing(),
+		// We just saw the user, so.
+		Time: time.Now(),
+	})
 
 	if strings.HasPrefix(m.Params[1], ".seen") {
 		params := strings.Split(m.Trailing(), " ")
@@ -33,9 +43,17 @@ func (Seen) Execute(m *irc.Message) (string, error) {
 		}
 
 		if seen, ok := LastSeen.Load(params[1]); ok {
+			humanized := humanize.Time(seen.(LastSeenInfo).Time)
+
+			// Don't want "now ago".
+			if humanized != "now" {
+				humanized = humanized + " ago"
+			}
+
 			return fmt.Sprintf(
-				"\x02%s\x02 was last seen: %s",
-				params[1], humanize.Time(seen.(time.Time)),
+				"\x02%s\x02 was last seen %s, saying: %s",
+				params[1], humanized,
+				seen.(LastSeenInfo).Message,
 			), nil
 		} else {
 			return "I have not seen " + params[1], nil
