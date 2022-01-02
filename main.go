@@ -43,6 +43,8 @@ func handleChatMessage(c *irc.Client, m *irc.Message) {
 			c.Write(line)
 		}
 	} else if err != nil {
+		msg.Params = []string{target, response}
+		c.WriteMessage(&msg)
 		log.Printf("error: %v", err)
 	} else {
 		for _, line := range split {
