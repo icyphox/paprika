@@ -26,8 +26,10 @@ func Register(p Plugin) {
 // functions, other special errors may need defining
 // to determin priority or to "concatenate" output.
 var NoReply = errors.New("No Reply")
+
 // This error indicates we are sending a NOTICE instead of a PRIVMSG
 var IsNotice = errors.New("Is Notice")
+
 // This means the string(s) we are returning are raw IRC commands
 // that need to be written verbatim.
 var IsRaw = errors.New("Is Raw")
@@ -62,8 +64,8 @@ func likelyInvalidNickChr(sym byte) bool {
 	// <nick> ::= <letter> { <letter> | <number> | <special> }
 	// But I have seen some networks that allow special/number as the first letter.
 	return sym > 32 /* SPACE */ && sym < 48 /* 0 */ ||
-	       sym > 58 /* : */ && sym < 65 /* A */ ||
-	       sym == 126 /* ~ */
+		sym > 58 /* : */ && sym < 65 /* A */ ||
+		sym == 126 /* ~ */
 }
 
 // Checks for triggers in a message and executes its

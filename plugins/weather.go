@@ -41,7 +41,6 @@ func (Weather) Execute(m *irc.Message) (string, error) {
 		return "", NoReply
 	}
 
-
 	var loc string
 	if len(parsed) != 2 {
 		var err error
