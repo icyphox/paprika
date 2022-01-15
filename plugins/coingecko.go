@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	coingecko "git.icyphox.sh/paprika/plugins/coin-gecko"
+	coingecko "git.icyphox.sh/paprika/plugins/coingecko"
 	"github.com/dustin/go-humanize"
 	"gopkg.in/irc.v3"
 )
