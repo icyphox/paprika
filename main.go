@@ -12,12 +12,7 @@ import (
 	"gopkg.in/irc.v3"
 )
 
-func handleChatMessage(c *irc.Client, m *irc.Message) {
-	// Trim leading and trailing spaces to not trip up our
-	// plugins.
-	m.Params[1] = strings.TrimSpace(m.Params[1])
-	response, err := plugins.ProcessTrigger(m)
-
+func handleChatMessage(c *irc.Client, m *irc.Message, response string, err error) {
 	if errors.Is(err, plugins.NoReply) {
 		return
 	}
@@ -59,8 +54,15 @@ func ircHandler(c *irc.Client, m *irc.Message) {
 	switch m.Command {
 	case "001":
 		c.Write(config.SplitChannelList(config.C.Channels))
+	case "JOIN":
+		response, err := plugins.GetIntro(m)
+		handleChatMessage(c, m, response, err)
 	case "PRIVMSG":
-		handleChatMessage(c, m)
+		// Trim leading and trailing spaces to not trip up our
+		// plugins.
+		m.Params[1] = strings.TrimSpace(m.Params[1])
+		response, err := plugins.ProcessTrigger(m)
+		handleChatMessage(c, m, response, err)
 	}
 }
 
