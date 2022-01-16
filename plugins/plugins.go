@@ -79,6 +79,15 @@ func likelyInvalidNickChr(sym byte) bool {
 		sym == 126 /* ~ */
 }
 
+func likelyInvalidNick(nick string) bool {
+	for i := 0; i < len(nick); i++ {
+		if likelyInvalidNickChr(nick[i]) {
+			return true
+		}
+	}
+	return false
+}
+
 // Checks for triggers in a message and executes its
 // corresponding plugin, returning the response/error.
 func ProcessTrigger(m *irc.Message) (string, error) {

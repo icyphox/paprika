@@ -56,14 +56,23 @@ func ircHandler(c *irc.Client, m *irc.Message) {
 	switch m.Command {
 	case "001":
 		c.Write(config.SplitChannelList(config.C.Channels))
+	// TODO: Generalize this
 	case "JOIN":
 		response, err := plugins.GetIntro(m)
+		handleChatMessage(c, m, response, err)
+	// TODO: Generalize this
+	case "NOTICE":
+		response, err := plugins.CTCPReply(m)
 		handleChatMessage(c, m, response, err)
 	case "PRIVMSG":
 		// Trim leading and trailing spaces to not trip up our
 		// plugins.
 		m.Params[1] = strings.TrimSpace(m.Params[1])
 		response, err := plugins.ProcessTrigger(m)
+		handleChatMessage(c, m, response, err)
+	// TODO: Generalize this
+	case "401":
+		response, err := plugins.NoSuchUser(m)
 		handleChatMessage(c, m, response, err)
 	}
 }
