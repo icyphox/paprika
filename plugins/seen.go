@@ -1,11 +1,14 @@
 package plugins
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
+	"git.icyphox.sh/paprika/database"
+	"github.com/dgraph-io/badger/v3"
 	"github.com/dustin/go-humanize"
 	"gopkg.in/irc.v3"
 )
@@ -20,45 +23,83 @@ func (Seen) Triggers() []string {
 	return []string{".seen", ""}
 }
 
-var LastSeen sync.Map
-
 type LastSeenInfo struct {
 	// The last message the user sent.
 	Message string
+	// Command type
+	Doing string
 	// The last time this user was seen.
 	Time time.Time
 }
 
 func (Seen) Execute(m *irc.Message) (string, error) {
-	LastSeen.Store(m.Name, LastSeenInfo{
-		Message: m.Trailing(),
-		// We just saw the user, so.
-		Time: time.Now(),
-	})
-
-	if strings.HasPrefix(m.Params[1], ".seen") {
-		params := strings.Split(m.Trailing(), " ")
-		if len(params) == 1 {
+	var reply string
+	if m.Command == "PRIVMSG" && strings.HasPrefix(m.Trailing(), ".seen") {
+		params := strings.SplitN(m.Trailing(), " ", 3)
+		if len(params) != 2 {
 			return "Usage: .seen <nickname>", nil
 		}
 
-		if seen, ok := LastSeen.Load(params[1]); ok {
-			humanized := humanize.Time(seen.(LastSeenInfo).Time)
+		nameKey := database.ToKey("seen", params[1])
+		lastS, err := database.DB.Get(nameKey)
+		if err == badger.ErrKeyNotFound {
+			return fmt.Sprintf("I have not seen %s", params[1]), nil
+		} else if err  != nil {
+			return "", err
+		}
 
-			// Don't want "now ago".
-			if humanized != "now" {
-				humanized = humanized + " ago"
-			}
+		var lastSeen LastSeenInfo
+		err = gob.NewDecoder(bytes.NewReader(lastS)).Decode(&lastSeen)
+		if err != nil {
+			return "", err
+		}
 
-			return fmt.Sprintf(
+		humanized := humanize.Time(lastSeen.Time)
+
+		// Don't want "now ago".
+		if humanized != "now" {
+			humanized = humanized + " ago"
+		}
+
+		if lastSeen.Doing == "PRIVMSG" {
+			reply = fmt.Sprintf(
 				"\x02%s\x02 was last seen %s, saying: %s",
 				params[1], humanized,
-				seen.(LastSeenInfo).Message,
-			), nil
+				lastSeen.Message,
+			)
 		} else {
-			return "I have not seen " + params[1], nil
+			reply = fmt.Sprintf(
+				"\x02%s\x02 was last seen %s, doing: %s",
+				params[1], humanized,
+				lastSeen.Doing,
+			)
 		}
 	}
 
-	return "", NoReply
+	seenDoing := LastSeenInfo{
+		Message: m.Trailing(),
+		Doing: m.Command,
+		// We just saw the user, so.
+		Time: time.Now(),
+	}
+
+	var enc bytes.Buffer
+	err := gob.NewEncoder(&enc).Encode(seenDoing)
+	if err != nil {
+		return "", err
+	}
+	
+	nameKey := database.ToKey("seen", m.Name)
+	database.DB.Set(nameKey, enc.Bytes())
+
+	if reply == "" {
+		return "", NoReply
+	} else {
+		return reply, nil
+	}
+}
+
+func SeenDoing(m *irc.Message) error {
+	_, err := Seen{}.Execute(m)
+	return err
 }

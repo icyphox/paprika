@@ -21,8 +21,9 @@ func (Introduction) Triggers() []string {
 
 func (Introduction) Execute(m *irc.Message) (string, error) {
 	param := strings.SplitN(m.Trailing(), " ", 2)
+	userKey := database.ToKey("introduction", m.Name)
 	if len(param) != 2 {
-		intro, err := database.DB.Get([]byte(m.Name))
+		intro, err := database.DB.Get(userKey)
 		if err == badger.ErrKeyNotFound {
 			return fmt.Sprintf("Usage: %s <intro text>", param[0]), nil
 		} else if err != nil {
@@ -32,7 +33,7 @@ func (Introduction) Execute(m *irc.Message) (string, error) {
 		}
 	}
 
-	err := database.DB.Set([]byte(m.Name), []byte(param[1]))
+	err := database.DB.Set(userKey, []byte(param[1]))
 	if err != nil {
 		return "[Introduction] Failed to set introduction string.", nil
 	}
@@ -41,7 +42,7 @@ func (Introduction) Execute(m *irc.Message) (string, error) {
 }
 
 func GetIntro (m *irc.Message) (string, error) {
-	intro, err := database.DB.Get([]byte(m.Name))
+	intro, err := database.DB.Get(database.ToKey("introduction", m.Name))
 	if err == badger.ErrKeyNotFound {
 		return "", NoReply
 	} else if err != nil {

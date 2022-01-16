@@ -58,8 +58,17 @@ func ircHandler(c *irc.Client, m *irc.Message) {
 		c.Write(config.SplitChannelList(config.C.Channels))
 	// TODO: Generalize this
 	case "JOIN":
+		err := plugins.SeenDoing(m)
+		if err != nil && err != plugins.NoReply {
+			log.Printf("error: %v", err)
+		}
 		response, err := plugins.GetIntro(m)
 		handleChatMessage(c, m, response, err)
+	case "PART", "QUIT":
+		err := plugins.SeenDoing(m)
+		if err != nil && err != plugins.NoReply {
+			log.Printf("error: %v", err)
+		}
 	// TODO: Generalize this
 	case "NOTICE":
 		response, err := plugins.CTCPReply(m)

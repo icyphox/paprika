@@ -31,9 +31,10 @@ func (Version) Execute(m *irc.Message) (string, error) {
 		return fmt.Sprintf("%s does not look like an IRC Nick", nickTarget), nil
 	}
 
+	nickKey := database.ToKey("version", nickTarget)
 	replyTarget := m.Params[0]
 	err := database.DB.SetWithTTL(
-		[]byte(nickTarget),
+		nickKey,
 		[]byte(replyTarget),
 		2 * time.Minute,
 	)
@@ -62,7 +63,7 @@ func CTCPReply(m *irc.Message) (string, error) {
 	ver := params[1][:len(params[1])-1]
 	from := m.Name
 
-	newTarget, err := database.DB.Delete([]byte(from))
+	newTarget, err := database.DB.Delete(database.ToKey("version", from))
 	if err != nil {
 		return "", err
 	}
@@ -74,7 +75,7 @@ func CTCPReply(m *irc.Message) (string, error) {
 
 func NoSuchUser(m *irc.Message) (string, error) {
 	invalidNick := m.Params[1]
-	newTarget, err := database.DB.Delete([]byte(invalidNick))
+	newTarget, err := database.DB.Delete(database.ToKey("version", invalidNick))
 	if err == badger.ErrKeyNotFound {
 		return "", NoReply
 	} else if err != nil {

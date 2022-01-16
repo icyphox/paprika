@@ -168,6 +168,10 @@ func EncodeNumber(n int) ([]byte, error) {
 	}
 }
 
+func ToKey(prefix, key string) []byte {
+	return []byte(fmt.Sprintf("%s/%s", prefix, key))
+}
+
 // encode number so it sorts lexicographically, while being semi readable.
 func DecodeNumber(n []byte) (int, error) {
 	if len(n) < 3 {
