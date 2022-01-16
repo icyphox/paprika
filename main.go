@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"errors"
+	"io"
 	"log"
 	"net"
 	"strings"
@@ -68,6 +69,18 @@ func ircHandler(c *irc.Client, m *irc.Message) {
 }
 
 func main() {
+	var err error
+	var conn io.ReadWriteCloser
+	if !config.C.Tls {
+		conn, err = net.Dial("tcp", config.C.Host)
+	} else {
+		conn, err = tls.Dial("tcp", config.C.Host, nil)
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
 	ircConfig := irc.ClientConfig{
 		Nick:    config.C.Nick,
 		Pass:    config.C.Pass,
@@ -76,29 +89,13 @@ func main() {
 		Handler: irc.HandlerFunc(ircHandler),
 	}
 
-	var err error
 	database.DB.DB, err = database.Open()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer database.DB.Close()
 
-	var client *irc.Client
-	if !config.C.Tls {
-		conn, err := net.Dial("tcp", config.C.Host)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer conn.Close()
-		client = irc.NewClient(conn, ircConfig)
-	} else {
-		conn, err := tls.Dial("tcp", config.C.Host, nil)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer conn.Close()
-		client = irc.NewClient(conn, ircConfig)
-	}
+	client := irc.NewClient(conn, ircConfig)
 	err = client.Run()
 	if err != nil {
 		log.Fatal(err)
