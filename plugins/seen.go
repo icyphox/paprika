@@ -54,11 +54,6 @@ func (Seen) Execute(m *irc.Message) (string, error) {
 
 				humanized := humanize.Time(lastSeen.Time)
 
-				// Don't want "now ago".
-				if humanized != "now" {
-					humanized = humanized + " ago"
-				}
-
 				if lastSeen.Doing == "PRIVMSG" {
 					reply = fmt.Sprintf(
 						"\x02%s\x02 was last seen %s, saying: %s",
