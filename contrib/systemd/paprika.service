@@ -1,0 +1,16 @@
+# /etc/systemd/system/paprika.service
+# Example Systemd service for Paprika
+[Unit]
+Description=Paprika IRC Bot
+After=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+# See `man systemd.exec` for where these paths go.
+StateDirectory=paprika
+ConfigurationDirectory=paprika
+ExecStart=/usr/local/bin/paprika
+
+[Install]
+WantedBy=multi-user.target
