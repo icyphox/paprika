@@ -74,8 +74,7 @@ func (Seen) Execute(m *irc.Message) (string, error) {
 	seenDoing := LastSeenInfo{
 		Message: m.Trailing(),
 		Doing:   m.Command,
-		// We just saw the user, so.
-		Time: time.Now(),
+		Time:    time.Now(),
 	}
 
 	var enc bytes.Buffer

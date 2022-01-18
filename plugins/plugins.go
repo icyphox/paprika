@@ -13,11 +13,16 @@ type Plugin interface {
 	Execute(m *irc.Message) (string, error)
 }
 
-var Plugins = make(map[string]Plugin)
+type PluginTuple struct {
+	a string
+	b Plugin
+}
+
+var Plugins = []PluginTuple{}
 
 func Register(p Plugin) {
 	for _, t := range p.Triggers() {
-		Plugins[t] = p
+		Plugins = append(Plugins, PluginTuple{a: t, b: p})
 	}
 }
 
@@ -95,9 +100,9 @@ func ProcessTrigger(m *irc.Message) (string, error) {
 		m.Params[0] = m.Name
 	}
 
-	for trigger, plugin := range Plugins {
-		if strings.HasPrefix(m.Trailing(), trigger) {
-			response, err := plugin.Execute(m)
+	for _, pluginTup := range Plugins {
+		if strings.HasPrefix(m.Trailing(), pluginTup.a) {
+			response, err := pluginTup.b.Execute(m)
 			if !errors.Is(err, NoReply) {
 				return response, err
 			}
