@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"sync"
 
 	"git.icyphox.sh/paprika/config"
 	"git.icyphox.sh/paprika/database"
@@ -14,44 +15,28 @@ import (
 	"gopkg.in/irc.v3"
 )
 
-func handleChatMessage(c *irc.Client, m *irc.Message, response string, err error) {
+func handleChatMessage(c *irc.Client, responses []*irc.Message, err error) {
 	if errors.Is(err, plugins.NoReply) {
 		return
 	}
 
-	cmd := "PRIVMSG"
-	if errors.Is(err, plugins.IsNotice) {
-		err = nil
-		cmd = "NOTICE"
-	}
-
-	target := m.Params[0]
-	if serr, ok := err.(*plugins.IsPrivateNotice); ok {
-		target = serr.To
-		cmd = "NOTICE"
-		err = nil
-	}
-
-	msg := irc.Message{Command: cmd}
-	split := strings.Split(response, "\n")
-
-	if errors.Is(err, plugins.IsRaw) {
-		for _, line := range split {
-			c.Write(line)
-		}
-	} else if err != nil {
-		msg.Params = []string{target, response}
-		c.WriteMessage(&msg)
+	if err != nil {
 		log.Printf("error: %v", err)
-	} else {
-		for _, line := range split {
-			msg.Params = []string{target, line}
-			c.WriteMessage(&msg)
-		}
 		return
+	}
+
+	for _, resp := range responses {
+		c.WriteMessage(resp)
 	}
 }
 
+var cbs *plugins.Callback = nil
+var cblock = sync.RWMutex{}
+
+// GENERAL TODO: We need a way to have plugins send continuations or handlers
+//               so we can dynamically react to IRC commands.
+//               This should mean we can also populate stateful information generically
+//               using only the plugin subsystem.
 func ircHandler(c *irc.Client, m *irc.Message) {
 	switch m.Command {
 	case "001":
@@ -63,7 +48,7 @@ func ircHandler(c *irc.Client, m *irc.Message) {
 			log.Printf("error: %v", err)
 		}
 		response, err := plugins.GetIntro(m)
-		handleChatMessage(c, m, response, err)
+		handleChatMessage(c, []*irc.Message{response}, err)
 	case "PART", "QUIT":
 		err := plugins.SeenDoing(m)
 		if err != nil && err != plugins.NoReply {
@@ -72,17 +57,17 @@ func ircHandler(c *irc.Client, m *irc.Message) {
 	// TODO: Generalize this
 	case "NOTICE":
 		response, err := plugins.CTCPReply(m)
-		handleChatMessage(c, m, response, err)
+		handleChatMessage(c, []*irc.Message{response}, err)
 	case "PRIVMSG":
 		// Trim leading and trailing spaces to not trip up our
 		// plugins.
 		m.Params[1] = strings.TrimSpace(m.Params[1])
 		response, err := plugins.ProcessTrigger(m)
-		handleChatMessage(c, m, response, err)
+		handleChatMessage(c, response, err)
 	// TODO: Generalize this
 	case "401":
 		response, err := plugins.NoSuchUser(m)
-		handleChatMessage(c, m, response, err)
+		handleChatMessage(c, []*irc.Message{response}, err)
 	}
 }
 

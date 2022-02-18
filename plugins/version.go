@@ -20,15 +20,14 @@ func (Version) Triggers() []string {
 	return []string{".v", ".version"}
 }
 
-func (Version) Execute(m *irc.Message) (string, error) {
-	params := strings.SplitN(m.Trailing(), " ", 3)
-	if len(params) != 2 {
-		return fmt.Sprintf("Usage: %s <nick>", params[0]), nil
+func (Version) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+	if rest == "" {
+		return NewRes(m, fmt.Sprintf("Usage: %s <nick>", cmd)), nil
 	}
 
-	nickTarget := params[1]
+	nickTarget := rest
 	if likelyInvalidNick(nickTarget) {
-		return fmt.Sprintf("%s does not look like an IRC Nick", nickTarget), nil
+		return NewRes(m, fmt.Sprintf("%s does not look like an IRC Nick", nickTarget)), nil
 	}
 
 	nickKey := database.ToKey("version", nickTarget)
@@ -36,28 +35,31 @@ func (Version) Execute(m *irc.Message) (string, error) {
 	err := database.DB.SetWithTTL(
 		nickKey,
 		[]byte(replyTarget),
-		2 * time.Minute,
+		2*time.Minute,
 	)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	m.Params[0] = nickTarget
-	return "\x01VERSION\x01", nil
+	return &irc.Message{
+		Command: "PRIVMSG",
+		Params:  []string{nickTarget, "\x01VERSION\x01"},
+	}, nil
 }
 
-func CTCPReply(m *irc.Message) (string, error) {
+func CTCPReply(m *irc.Message) (*irc.Message, error) {
 	msg := m.Trailing()
 	if !strings.HasPrefix(msg, "\x01VERSION") {
-		return "", NoReply
+		return nil, NoReply
 	}
 
 	params := strings.SplitN(msg, " ", 2)
 	if len(params) != 2 {
-		return "", NoReply
+		return nil, NoReply
 	}
 	if len(params[1]) == 0 {
-		return "", NoReply
+		return nil, NoReply
 	}
 
 	ver := params[1][:len(params[1])-1]
@@ -65,25 +67,32 @@ func CTCPReply(m *irc.Message) (string, error) {
 
 	newTarget, err := database.DB.Delete(database.ToKey("version", from))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	
-	m.Params[0] = string(newTarget)
-	m.Command = "PRIVMSG"
-	return fmt.Sprintf("%s VERSION: %s", from, ver), nil
+
+	return &irc.Message{
+		Command: "PRIVMSG",
+		Params: []string{
+			string(newTarget),
+			fmt.Sprintf("%s VERSION: %s", from, ver),
+		},
+	}, nil
 }
 
-func NoSuchUser(m *irc.Message) (string, error) {
+func NoSuchUser(m *irc.Message) (*irc.Message, error) {
 	invalidNick := m.Params[1]
 	newTarget, err := database.DB.Delete(database.ToKey("version", invalidNick))
 	if err == badger.ErrKeyNotFound {
-		return "", NoReply
+		return nil, NoReply
 	} else if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	m.Command = "PRIVMSG"
-	m.Params[0] = string(newTarget)
-	m.Params = m.Params[:1]
-	return fmt.Sprintf("No such nickname: %s", invalidNick), nil
+	return &irc.Message{
+		Command: "PRIVMSG",
+		Params: []string{
+			string(newTarget),
+			fmt.Sprintf("No such nickname: %s", invalidNick),
+		},
+	}, nil
 }

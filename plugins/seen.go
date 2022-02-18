@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"strings"
 	"time"
 
 	"git.icyphox.sh/paprika/database"
@@ -15,12 +14,13 @@ import (
 
 func init() {
 	Register(Seen{})
+	RegisterMatcher(Seen{})
 }
 
 type Seen struct{}
 
 func (Seen) Triggers() []string {
-	return []string{".seen", ""}
+	return []string{".seen"}
 }
 
 type LastSeenInfo struct {
@@ -32,24 +32,28 @@ type LastSeenInfo struct {
 	Time time.Time
 }
 
-func (Seen) Execute(m *irc.Message) (string, error) {
+func (Seen) Matches(m *irc.Message) (string, error) {
+	// always match
+	return "", nil
+}
+
+func (Seen) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 	var reply string
-	if m.Command == "PRIVMSG" && strings.HasPrefix(m.Trailing(), ".seen") {
-		params := strings.SplitN(m.Trailing(), " ", 3)
-		if len(params) != 2 {
+	if m.Command == "PRIVMSG" && cmd == ".seen" {
+		if rest == "" {
 			reply = "Usage: .seen <nickname>"
 		} else {
-			nameKey := database.ToKey("seen", params[1])
+			nameKey := database.ToKey("seen", rest)
 			lastS, err := database.DB.Get(nameKey)
 			if err == badger.ErrKeyNotFound {
-				reply = fmt.Sprintf("I have not seen %s", params[1])
+				reply = fmt.Sprintf("I have not seen %s", rest)
 			} else if err != nil {
-				return "", err
+				return nil, err
 			} else {
 				var lastSeen LastSeenInfo
 				err = gob.NewDecoder(bytes.NewReader(lastS)).Decode(&lastSeen)
 				if err != nil {
-					return "", err
+					return nil, err
 				}
 
 				humanized := humanize.Time(lastSeen.Time)
@@ -57,13 +61,13 @@ func (Seen) Execute(m *irc.Message) (string, error) {
 				if lastSeen.Doing == "PRIVMSG" {
 					reply = fmt.Sprintf(
 						"\x02%s\x02 was last seen %s, saying: %s",
-						params[1], humanized,
+						rest, humanized,
 						lastSeen.Message,
 					)
 				} else {
 					reply = fmt.Sprintf(
 						"\x02%s\x02 was last seen %s, doing: %s",
-						params[1], humanized,
+						rest, humanized,
 						lastSeen.Doing,
 					)
 				}
@@ -80,20 +84,20 @@ func (Seen) Execute(m *irc.Message) (string, error) {
 	var enc bytes.Buffer
 	err := gob.NewEncoder(&enc).Encode(seenDoing)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	nameKey := database.ToKey("seen", m.Name)
 	database.DB.Set(nameKey, enc.Bytes())
 
 	if reply == "" {
-		return "", NoReply
+		return nil, NoReply
 	} else {
-		return reply, nil
+		return NewRes(m, reply), nil
 	}
 }
 
 func SeenDoing(m *irc.Message) error {
-	_, err := Seen{}.Execute(m)
+	_, err := Seen{}.Execute("", "", m)
 	return err
 }

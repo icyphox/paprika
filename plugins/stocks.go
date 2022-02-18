@@ -107,16 +107,16 @@ func getStock(symbol, apiKey string) (string, error) {
 	return outRes.String(), nil
 }
 
-func (Stocks) Execute(m *irc.Message) (string, error) {
-	parsed := strings.SplitN(m.Trailing(), " ", 3)
-	if len(parsed) != 2 {
-		return fmt.Sprintf("Usage: %s <Ticker>", parsed[0]), nil
+func (Stocks) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+	if rest == "" {
+		return NewRes(m, fmt.Sprintf("Usage: %s <Ticker>", rest)), nil
 	}
-	sym := strings.ToUpper(parsed[1])
+	sym := strings.ToUpper(rest)
 
 	if apiKey, ok := config.C.ApiKeys["iex"]; ok {
-		return getStock(sym, apiKey)
+		res, err := getStock(sym, apiKey)
+		return NewRes(m, res), err
 	}
 
-	return "", NoIEXApi
+	return nil, NoIEXApi
 }

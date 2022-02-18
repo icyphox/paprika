@@ -16,8 +16,9 @@ func init() {
 }
 
 var (
-	aliases  = []string{".btc", ".eth", ".doge", ".bsc"}
-	triggers = append([]string{".cg", ".coin", ".crypto"}, aliases...)
+	twoArg   = []string{".cg", ".coin", ".crypto"}
+	aliases  = []string{".btc", ".eth", ".doge", ".bnb"}
+	triggers = append(twoArg, aliases...)
 )
 
 func (CoinGecko) Triggers() []string {
@@ -26,61 +27,55 @@ func (CoinGecko) Triggers() []string {
 
 func formatCgNum(field string, value float64, percent bool) string {
 	if percent {
-		v := humanize.CommafWithDigits(value + 0.00000000001, 2)
+		v := humanize.CommafWithDigits(value+0.00000000001, 2)
 		if value < 0 {
 			return fmt.Sprintf("%s: \x0304%s%%\x03 ", field, v)
 		} else {
 			return fmt.Sprintf("%s: \x0303%s%%\x03 ", field, v)
 		}
 	} else if value >= 0.01 {
-		v := humanize.CommafWithDigits(value + 0.00000000001, 2)
+		v := humanize.CommafWithDigits(value+0.00000000001, 2)
 		return fmt.Sprintf("%s: $%s ", field, v)
 	} else {
 		return fmt.Sprintf("%s: $%.3e ", field, value)
 	}
 }
 
-func (CoinGecko) Execute(m *irc.Message) (string, error) {
-	parsed := strings.SplitN(m.Trailing(), " ", 3)
-	if len(parsed) > 2 {
-		return fmt.Sprintf("Usage: %s <Ticker>", parsed[0]), nil
-	}
-	cmd := parsed[0]
-
+func (CoinGecko) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 	var coin string
-	for _, alias := range aliases {
-		if cmd == alias {
-			coin = alias[1:]
-			break
+	if rest == "" {
+		for _, twoarg := range twoArg {
+			if cmd == twoarg {
+				return NewRes(m, fmt.Sprintf("Usage: %s <Ticker>", cmd)), nil
+			}
 		}
-	}
-
-	var sym string
-	if len(parsed) != 2 && coin == "" {
-		return fmt.Sprintf("Usage: %s <Ticker>", parsed[0]), nil
-	} else if coin != "" {
-		sym = coin
+		for _, alias := range aliases {
+			if cmd == alias {
+				coin = alias[1:]
+				break
+			}
+		}
 	} else {
-		sym = parsed[1]
+		coin = rest
 	}
 
 	err := coingecko.CheckUpdateCoinList()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	cid, err := coingecko.GetCoinId(sym)
+	cid, err := coingecko.GetCoinId(coin)
 	if err != nil {
-		return "", err
+		return nil, err
 	} else if cid == "" {
-		return fmt.Sprintf("No such coin found: %s", sym), nil
+		return NewRes(m, fmt.Sprintf("No such coin found: %s", coin)), nil
 	}
 
 	stats, err := coingecko.GetCoinPrice(cid)
 	if err != nil {
-		return "", err
+		return nil, err
 	} else if stats == nil {
-		return fmt.Sprintf("No such coin found: %s", sym), nil
+		return NewRes(m, fmt.Sprintf("No such coin found: %s", coin)), nil
 	}
 
 	mData := stats.MarketData
@@ -103,5 +98,5 @@ func (CoinGecko) Execute(m *irc.Message) (string, error) {
 	outRes.WriteString(formatCgNum("60d", mData.Change60d, true))
 	outRes.WriteString(formatCgNum("1y", mData.Change1y, true))
 
-	return outRes.String(), nil
+	return NewRes(m, outRes.String()), nil
 }

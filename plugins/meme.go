@@ -30,18 +30,17 @@ func (Meme) Triggers() []string {
 	}
 }
 
-func (Meme) Execute(m *irc.Message) (string, error) {
-	parts := strings.SplitN(m.Trailing(), " ", 2)
-	trigger := parts[0]
+func (Meme) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 	rand.Seed(time.Now().Unix())
 	var target string
-	if len(parts) > 1 {
-		target = parts[1]
+	if rest != "" {
+		target = rest
 	} else {
 		target = m.Prefix.Name
 	}
 
-	switch trigger {
+	var response string
+	switch cmd {
 	case "." + string(n):
 		// lol
 		if m.Prefix.Name == "IRSSucks" {
@@ -52,28 +51,30 @@ func (Meme) Execute(m *irc.Message) (string, error) {
 			// Easter egg! Only teh cool h4x0rz will get this.
 			word = "bmlnZ2Vy"
 		}
-		return fmt.Sprintf("%s is a %s", target, word), nil
+		response = fmt.Sprintf("%s is a %s", target, word)
 	case ".kiss", ".love":
 		kaomoji := []string{
 			"(●´□`)", "(｡･ω･｡)ﾉ", "(｡’▽’｡)",
 			"(ෆ ͒•∘̬• ͒)◞", "( •ॢ◡-ॢ)-", "⁽⁽ପ( •ु﹃ •ु)​.⑅*",
 			"(๑ Ỡ ◡͐ Ỡ๑)ﾉ", "◟(◔ั₀◔ั )◞ ༘",
 		}
-		return fmt.Sprintf(
+		response = fmt.Sprintf(
 			"%s \x02\x034 。。・゜゜・。。・❤️ %s ❤️ \x03\x02",
 			kaomoji[rand.Intn(len(kaomoji))],
 			target,
-		), nil
+		)
 	case ".increase", ".decrease":
-		return fmt.Sprintf(
+		response = fmt.Sprintf(
 			"\x02[QUALITY OF CHANNEL SIGNIFICANTLY %sD]\x02",
-			strings.ToUpper(trigger[1:]),
-		), nil
+			strings.ToUpper(cmd[1:]),
+		)
 	case ".sniff":
-		return fmt.Sprintf("huffs %s's hair while sat behind them on the bus.", target), nil
+		response = fmt.Sprintf("huffs %s's hair while sat behind them on the bus.", target)
 	case ".hug":
-		return fmt.Sprintf("(>^_^)>❤️ %s ❤️<(^o^<)", target), nil
-
+		response = fmt.Sprintf("(>^_^)>❤️ %s ❤️<(^o^<)", target)
+	default:
+		panic("Unreachable!")
 	}
-	return "", nil
+
+	return NewRes(m, response), nil
 }

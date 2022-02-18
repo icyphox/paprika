@@ -1,15 +1,15 @@
 package plugins
 
 import (
-	"errors"
 	"fmt"
 	"io"
-	"log"
+	"mime"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"golang.org/x/net/html"
+	"golang.org/x/net/html/charset"
 	"gopkg.in/irc.v3"
 )
 
@@ -18,59 +18,54 @@ import (
 // The plugins.go file has a special case for handling an 'empty' Triggers string.
 // on such a case, it will simply run Execute on every message that it sees.
 func init() {
-	Register(LinkHandler{})
+	RegisterMatcher(LinkHandler{})
 }
 
 type LinkHandler struct{}
 
 func (LinkHandler) Triggers() []string {
-	return []string{""}
+	return nil
 }
 
-func (LinkHandler) Execute(m *irc.Message) (string, error) {
-	// The message starts with a '.', so we ignore it.
-	if strings.HasPrefix(m.Params[1], ".") {
+func (LinkHandler) Matches(m *irc.Message) (string, error) {
+	msg := m.Trailing()
+	if strings.HasPrefix(msg, ".") {
 		return "", NoReply
 	}
 
-	var output strings.Builder
-
-	// in PRIVMSG's case, the second (first, if counting from 0) parameter
-	// is the string that contains the complete message.
-	for _, value := range strings.Split(m.Params[1], " ") {
-		u, err := url.Parse(value)
-
-		if err != nil {
-			continue
-		}
-
-		// just a test check for the time being.
-		// this if statement block will be used for content that is
-		// non-generic. I.e it belongs to a specific website, like
-		// stackoverflow or youtube.
-		if u.Hostname() == "www.youtube.com" || u.Hostname() == "youtube.com" || u.Hostname() == "youtu.be" {
-			// TODO finish this
-			yt, err := YoutubeDescriptionFromUrl(u)
-			if err != nil {
-				return "", err
-			}
-			output.WriteString(yt)
-			output.WriteByte('\n')
-		} else if len(u.Hostname()) > 0 {
-			desc, err := getDescriptionFromURL(value)
-			if err != nil {
-				log.Printf("Failed to get title from http URL")
-				fmt.Println(err)
-				continue
-			}
-			output.WriteString(fmt.Sprintf("[URL] %s (%s)\n", desc, u.Hostname()))
+	for _, word := range strings.Split(msg, " ") {
+		u, err := url.Parse(word)
+		if err != nil && u != nil && (u.Scheme == "http" || u.Scheme == "https") {
+			return word, nil
 		}
 	}
 
-	if output.Len() > 0 {
-		return output.String(), nil
+	return "", NoReply
+}
+
+func (LinkHandler) Execute(match, msg string, m *irc.Message) (*irc.Message, error) {
+	u, err := url.Parse(match)
+	if err != nil {
+		panic("UNREACHABLE: We parse this in Matches, wtf?")
+	}
+
+	// just a test check for the time being.
+	// this if statement block will be used for content that is
+	// non-generic. I.e it belongs to a specific website, like
+	// stackoverflow or youtube.
+	if u.Hostname() == "www.youtube.com" || u.Hostname() == "youtube.com" || u.Hostname() == "youtu.be" {
+		// TODO finish this
+		yt, err := YoutubeDescriptionFromUrl(u)
+		if err != nil {
+			return nil, err
+		}
+		return NewRes(m, yt), nil
 	} else {
-		return "", NoReply // We need to NoReply so we don't consume all messages.
+		desc, err := getDescriptionFromURL(match)
+		if err != nil {
+			return nil, err
+		}
+		return NewRes(m, fmt.Sprintf("[URL] %s (%s)\n", desc, u.Hostname())), nil
 	}
 }
 
@@ -80,25 +75,30 @@ func isTitleElement(n *html.Node) bool {
 	return n.Type == html.ElementNode && n.Data == "title"
 }
 
-func traverse(n *html.Node) (string, bool) {
+func traverse(n *html.Node) string {
 	if isTitleElement(n) {
-		return n.FirstChild.Data, true
+		return n.FirstChild.Data
 	}
 
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		result, ok := traverse(c)
-		if ok {
-			return result, ok
+		result := traverse(c)
+		if result != "" {
+			return result
 		}
 	}
 
-	return "", false
+	return ""
 }
 
-func getHtmlTitle(r io.Reader) (string, bool) {
-	doc, err := html.Parse(r)
+func getHtmlTitle(r io.Reader, contentType string) string {
+	readable, err := charset.NewReader(r, contentType)
 	if err != nil {
-		return "", false
+		return err.Error()
+	}
+
+	doc, err := html.Parse(readable)
+	if err != nil {
+		return err.Error()
 	}
 
 	return traverse(doc)
@@ -131,20 +131,21 @@ func getDescriptionFromURL(url string) (string, error) {
 
 	defer resp.Body.Close()
 
-	mime := resp.Header.Get("content-type")
-
-	switch mime {
-	case "image/jpeg":
-		return fmt.Sprintf("JPEG image, size: %s", byteCountSI(resp.ContentLength)), nil
-	case "image/png":
-		return fmt.Sprintf("PNG image, size: %s", byteCountSI(resp.ContentLength)), nil
-	default:
-		output, ok := getHtmlTitle(resp.Body)
-
-		if !ok {
-			return "", errors.New("Failed to find <title> in html")
-		}
-
-		return output, nil
+	contentType := resp.Header.Get("content-type")
+	if contentType == "" {
+		return "- Unknown Content -", nil
 	}
+
+	media, _, err := mime.ParseMediaType(contentType)
+
+	if strings.Contains(media, "html") ||
+		strings.Contains(media, "xml") || strings.Contains(media, "xhtml") {
+
+		if title := getHtmlTitle(resp.Body, contentType); title != "" {
+			return title, nil
+		}
+		return "- No Title -", nil
+	}
+
+	return fmt.Sprintf("%s, size: %s", media, byteCountSI(resp.ContentLength)), nil
 }

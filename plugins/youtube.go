@@ -21,15 +21,18 @@ func (Youtube) Triggers() []string {
 	return []string{".yt"}
 }
 
-func (Youtube) Execute(m *irc.Message) (string, error) {
-	parsed := strings.SplitN(m.Trailing(), " ", 2)
-	if len(parsed) == 1 && parsed[0] == ".yt" {
-		return "Usage: .yt <query>", nil
-	} else if parsed[0] != ".yt" {
-		return "", NoReply // ???
+func (Youtube) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+	if rest == "" {
+		return NewRes(m, "Usage: .yt <query>"), nil
 	}
 
-	return YoutubeSearch(parsed[1])
+	reply, err := YoutubeSearch(rest)
+	if err == NoYtApiKey {
+		return NewRes(m, "YT Plugin is disabled."), nil
+	} else if err != nil {
+		return nil, err
+	}
+	return NewRes(m, reply), nil
 }
 
 func init() {

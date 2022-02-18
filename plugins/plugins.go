@@ -2,28 +2,51 @@ package plugins
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"gopkg.in/irc.v3"
 )
 
+func NewRes(m *irc.Message, reply string) *irc.Message {
+	return &irc.Message{
+		Tags:    nil,
+		Prefix:  nil,
+		Command: "PRIVMSG",
+		Params: []string{
+			m.Params[0],
+			reply,
+		},
+	}
+}
+
 type Plugin interface {
 	Triggers() []string
-	Execute(m *irc.Message) (string, error)
+	Execute(command string, rest string, m *irc.Message) (*irc.Message, error)
 }
 
-type PluginTuple struct {
-	a string
-	b Plugin
-}
-
-var Plugins = []PluginTuple{}
+var simplePlugins = make(map[string]Plugin)
 
 func Register(p Plugin) {
 	for _, t := range p.Triggers() {
-		Plugins = append(Plugins, PluginTuple{a: t, b: p})
+		simplePlugins[t] = p
 	}
+}
+
+// A match plugin is a plugin that has no specific command but reacts
+// To a specific match in an IRC message.
+// Example would be a url matcher that would fetch youtube metadata
+// when a user posts a url like https://youtu.be/<VID_ID_HERE>.
+type MatchPlugin interface {
+	Plugin
+	// Execute's command will be the matching value returned.
+	// If the returned "match string" is empty, it is assumed to not match.
+	Matches(m *irc.Message) (string, error)
+}
+
+var matchers = []MatchPlugin{}
+
+func RegisterMatcher(p MatchPlugin) {
+	matchers = append(matchers, p)
 }
 
 // This Error is used to signal a NAK so other plugins
@@ -32,23 +55,6 @@ func Register(p Plugin) {
 // functions, other special errors may need defining
 // to determin priority or to "concatenate" output.
 var NoReply = errors.New("No Reply")
-
-// This error indicates we are sending a NOTICE instead of a PRIVMSG
-var IsNotice = errors.New("Is Notice")
-
-// This means the string(s) we are returning are raw IRC commands
-// that need to be written verbatim.
-var IsRaw = errors.New("Is Raw")
-
-// This error indicates that the message is a NOTICE, along with a
-// recepient.
-type IsPrivateNotice struct {
-	To string
-}
-
-func (e *IsPrivateNotice) Error() string {
-	return fmt.Sprintf("Is Private Notice: %s", e.To)
-}
 
 // Due to racey nature of the handler in main.go being invoked as a goroutine,
 // it's hard to have race free way of building correct state of the IRC world.
@@ -95,18 +101,49 @@ func likelyInvalidNick(nick string) bool {
 
 // Checks for triggers in a message and executes its
 // corresponding plugin, returning the response/error.
-func ProcessTrigger(m *irc.Message) (string, error) {
+func ProcessTrigger(m *irc.Message) ([]*irc.Message, error) {
 	if !unlikelyDirectMessage(m.Params[0]) {
 		m.Params[0] = m.Name
 	}
 
-	for _, pluginTup := range Plugins {
-		if strings.HasPrefix(m.Trailing(), pluginTup.a) {
-			response, err := pluginTup.b.Execute(m)
-			if !errors.Is(err, NoReply) {
-				return response, err
-			}
+	var replies []*irc.Message
+
+	for _, matcher := range matchers {
+		match, err := matcher.Matches(m)
+		var reply *irc.Message
+		if err == nil {
+			reply, err = matcher.Execute(match, m.Trailing(), m)
+		}
+
+		if err == NoReply {
+			continue
+		} else if err != nil {
+			return nil, err
+		}
+
+		replies = append(replies, reply)
+	}
+
+	command_rest := strings.SplitN(m.Trailing(), " ", 2)
+	command := command_rest[0]
+	var message string
+	if len(command_rest) == 2 && command != "" {
+		message = command_rest[1]
+	}
+
+	if plug, ok := simplePlugins[command]; ok {
+		reply, err := plug.Execute(command, message, m)
+		if err == NoReply {
+		} else if err != nil {
+			return nil, err
+		} else {
+			replies = append(replies, reply)
 		}
 	}
-	return "", NoReply // No plugin matched, so we need to Ignore.
+
+	if len(replies) == 0 {
+		return nil, NoReply
+	} else {
+		return replies, nil
+	}
 }

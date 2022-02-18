@@ -16,13 +16,20 @@ func (Ctcp) Triggers() []string {
 	return []string{"\x01VERSION\x01", "\x01PING"}
 }
 
-func (Ctcp) Execute(m *irc.Message) (string, error) {
+func (Ctcp) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 	msg := m.Trailing()
-	if msg == "\x01VERSION\x01" {
-		return "\x01VERSION git.icyphox.sh/paprika\x01", IsNotice
-	} else if strings.HasPrefix(msg, "\x01PING") {
-		return msg, IsNotice
+	reply := &irc.Message{
+		Tags:    nil,
+		Prefix:  nil,
+		Command: "NOTICE",
+		Params:  []string{m.Params[0], ""},
 	}
 
-	panic("Unreachable!")
+	if msg == "\x01VERSION\x01" {
+		reply.Params[1] = "\x01VERSION git.icyphox.sh/paprika\x01"
+	} else if strings.HasPrefix(msg, "\x01PING") {
+		reply.Params[1] = msg
+	}
+
+	return reply, nil
 }

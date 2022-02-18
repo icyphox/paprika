@@ -227,10 +227,10 @@ const (
 	parseGetParam
 )
 
-func (Quotes) Execute(m *irc.Message) (string, error) {
+func (Quotes) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 	params := strings.Split(m.Trailing(), " ")
 	if len(params) == 1 {
-		return ".q [ add ] nickname [ quote | search | number ]", nil
+		return NewRes(m, ".q [ add ] nickname [ quote | search | number ]"), nil
 	}
 
 	pState := start
@@ -261,7 +261,7 @@ func (Quotes) Execute(m *irc.Message) (string, error) {
 			word = strings.TrimPrefix(word, "<")
 			word = strings.TrimSuffix(word, ">")
 			if len(word) == 0 {
-				return "Invalid nickname given", nil
+				return NewRes(m, "Invalid nickname given"), nil
 			}
 			// This is used elsewhere to check the prefix of a "target"
 			// if it's true, then this word still has a prefix we can
@@ -270,12 +270,12 @@ func (Quotes) Execute(m *irc.Message) (string, error) {
 				word = word[1:]
 			}
 			if len(word) == 0 {
-				return "Invalid nickname given", nil
+				return NewRes(m, "Invalid nickname given"), nil
 			}
 			// we only allow "< " prefix, not "<" + 2*sym
 			for j := 0; j < len(word); j++ {
 				if likelyInvalidNickChr(word[j]) {
-					return fmt.Sprintf("Invalid nickname: %s", word), nil
+					return NewRes(m, fmt.Sprintf("Invalid nickname: %s", word)), nil
 				}
 			}
 			nick = word
@@ -283,9 +283,10 @@ func (Quotes) Execute(m *irc.Message) (string, error) {
 			if cState == addQ {
 				quote := strings.Join(params[i+1:], " ")
 				if len(quote) == 0 {
-					return "Empty quote not allowed.", nil
+					return NewRes(m, "Empty quote not allowed."), nil
 				}
-				return addQuote(keyPrefix, []byte(quote))
+				res, err := addQuote(keyPrefix, []byte(quote))
+				return NewRes(m, res), err
 			} else {
 				pState = parseGetParam
 			}
@@ -293,20 +294,24 @@ func (Quotes) Execute(m *irc.Message) (string, error) {
 			if i+1 == len(params) {
 				qnum, err := strconv.Atoi(word)
 				if err != nil {
-					return findQuotes(nick, keyPrefix, []byte(word))
+					res, err := findQuotes(nick, keyPrefix, []byte(word))
+					return NewRes(m, res), err
 				} else {
-					return getQuote(nick, qnum, keyPrefix)
+					res, err := getQuote(nick, qnum, keyPrefix)
+					return NewRes(m, res), err
 				}
 			} else {
 				quote := strings.Join(params[i+1:], " ")
-				return findQuotes(nick, keyPrefix, []byte(quote))
+				res, err := findQuotes(nick, keyPrefix, []byte(quote))
+				return NewRes(m, res), err
 			}
 		}
 	}
 	// If no number given, use 0 to indicate random quote.
 	if pState == parseGetParam {
-		return getQuote(nick, randomQuote, keyPrefix)
+		res, err := getQuote(nick, randomQuote, keyPrefix)
+		return NewRes(m, res), err
 	} else {
-		return "Invalid number of parameters.", nil
+		return NewRes(m, "Invalid number of parameters."), nil
 	}
 }

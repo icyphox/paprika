@@ -1,8 +1,6 @@
 package plugins
 
 import (
-	"strings"
-
 	"git.icyphox.sh/paprika/plugins/lastfm"
 	"github.com/dgraph-io/badger/v3"
 	"gopkg.in/irc.v3"
@@ -21,35 +19,31 @@ func (LastFM) Triggers() []string {
 	}
 }
 
-func (LastFM) Execute(m *irc.Message) (string, error) {
-	parts := strings.SplitN(m.Trailing(), " ", 2)
-	trigger := parts[0]
-
-	switch trigger {
+func (LastFM) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+	switch cmd {
 	case ".lfm":
-		if len(parts) == 2 {
-			arg := parts[1]
-			err := lastfm.Setup(arg, m.Prefix.Name)
+		if rest != "" {
+			err := lastfm.Setup(rest, m.Prefix.Name)
 			if err != nil {
-				return "Database error", err
+				return nil, err
 			}
-			return "Successfully set Last.fm username", nil
+			return NewRes(m, "Successfully set Last.fm username"), nil
 		} else {
-			return "Usage: .lfm <username>", nil
+			return NewRes(m, "Usage: .lfm <username>"), nil
 		}
 	case ".np":
 		user, err := lastfm.GetUser(m.Prefix.Name)
 		if err == badger.ErrKeyNotFound {
-			return "User not found. Set it using '.lfm <username>'", nil
+			return NewRes(m, "User not found. Set it using '.lfm <username>'"), nil
 		} else if err != nil {
-			return "Database error", err
+			return nil, err
 		}
 
 		np, err := lastfm.NowPlaying(user)
 		if err != nil {
-			return "Listenbrainz error", err
+			return nil, err
 		}
-		return np, nil
+		return NewRes(m, np), nil
 	}
 
 	panic("Unreachable!")

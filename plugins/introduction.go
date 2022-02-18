@@ -2,7 +2,6 @@ package plugins
 
 import (
 	"fmt"
-	"strings"
 
 	"git.icyphox.sh/paprika/database"
 	"github.com/dgraph-io/badger/v3"
@@ -19,35 +18,36 @@ func (Introduction) Triggers() []string {
 	return []string{".intro"}
 }
 
-func (Introduction) Execute(m *irc.Message) (string, error) {
-	param := strings.SplitN(m.Trailing(), " ", 2)
+func (Introduction) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 	userKey := database.ToKey("introduction", m.Name)
-	if len(param) != 2 {
+	if rest == "" {
 		intro, err := database.DB.Get(userKey)
 		if err == badger.ErrKeyNotFound {
-			return fmt.Sprintf("Usage: %s <intro text>", param[0]), nil
+			return NewRes(m, fmt.Sprintf("Usage: %s <intro text>", cmd)), nil
 		} else if err != nil {
-			return "Unknown Error Checking for your intro.", err
+			return nil, err
 		} else {
-			return string(intro), nil
+			return NewRes(m, string(intro)), nil
 		}
 	}
 
-	err := database.DB.Set(userKey, []byte(param[1]))
+	err := database.DB.Set(userKey, []byte(rest))
 	if err != nil {
-		return "[Introduction] Failed to set introduction string.", nil
+		return nil, err
 	}
-
-	return "", NoReply
+	return nil, NoReply
 }
 
-func GetIntro (m *irc.Message) (string, error) {
+func GetIntro(m *irc.Message) (*irc.Message, error) {
 	intro, err := database.DB.Get(database.ToKey("introduction", m.Name))
 	if err == badger.ErrKeyNotFound {
-		return "", NoReply
+		return nil, NoReply
 	} else if err != nil {
-		return "", err
+		return nil, err
 	} else {
-		return string(intro), nil
+		return &irc.Message{
+			Command: "PRIVMSG",
+			Params:  []string{m.Params[0], string(intro)},
+		}, nil
 	}
 }

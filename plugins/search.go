@@ -135,21 +135,26 @@ func wiki(query string) (string, error) {
 	return ddg("site:https://en.wikipedia.org " + query)
 }
 
-func (Search) Execute(m *irc.Message) (string, error) {
-	parsed := strings.SplitN(m.Trailing(), " ", 2)
-	if len(parsed) != 2 {
-		return fmt.Sprintf("Usage: %s <query>", parsed[0]), nil
+func (Search) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+	if rest == "" {
+		return NewRes(m, fmt.Sprintf("Usage: %s <query>", rest)), nil
 	}
-	trigger, query := parsed[0], parsed[1]
+	res := &irc.Message{
+		Command: "PRIVMSG",
+		Params:  []string{m.Params[0], ""},
+	}
+	var err error
 
-	switch trigger {
+	switch cmd {
 	case ".mdn":
-		return mdn(query)
+		res.Params[1], err = mdn(rest)
 	case ".wiki":
-		return wiki(query)
+		res.Params[1], err = wiki(rest)
 	case ".g":
-		return google(query)
+		res.Params[1], err = google(rest)
 	default:
-		return ddg(query)
+		res.Params[1], err = ddg(rest)
 	}
+
+	return res, err
 }

@@ -19,14 +19,13 @@ func (Decide) Triggers() []string {
 	return []string{".decide", ".dice", ".roll"}
 }
 
-func (Decide) Execute(m *irc.Message) (string, error) {
-	params := strings.Split(m.Trailing(), " ")
+func (Decide) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+	params := strings.Split(rest, " ")
 
-	trigger := params[0]
-	if trigger == ".decide" {
+	if cmd == ".decide" {
 		var terms []string
 		var currTerm strings.Builder
-		for _, word := range params[1:] {
+		for _, word := range params {
 			if word == "" {
 				continue
 			}
@@ -44,33 +43,33 @@ func (Decide) Execute(m *irc.Message) (string, error) {
 		}
 
 		if len(terms) < 1 {
-			return "Usage: .decide proposition 1 [ or proposition 2 [ or proposition n ... ] ]", nil
+			return NewRes(m, "Usage: .decide proposition 1 [ or proposition 2 [ or proposition n ... ] ]"), nil
 		} else if len(terms) < 2 {
-			return []string{"Yes.", "No."}[rand.Intn(2)], nil
+			return NewRes(m, []string{"Yes.", "No."}[rand.Intn(2)]), nil
 		} else {
-			return terms[rand.Intn(len(terms))], nil
+			return NewRes(m, terms[rand.Intn(len(terms))]), nil
 		}
-	} else if trigger == ".dice" || trigger == ".roll" {
-		if len(params) != 2 {
-			return "usage: .dice NNdXX - where NN is 1-36 and XX is 2-64", nil
+	} else if cmd == ".dice" || cmd == ".roll" {
+		dice := params[0]
+		if dice == "" {
+			return NewRes(m, "usage: .dice NNdXX - where NN is 1-36 and XX is 2-64"), nil
 		}
-		dice := params[1]
 		if len(dice) > 5 {
-			return "Invalid dice specification: too big", nil
+			return NewRes(m, "Invalid dice specification: too big"), nil
 		}
 
 		spec := strings.SplitN(dice, "d", 2)
 		if len(spec) != 2 {
-			return "Invalid dice specification: no separating 'd'", nil
+			return NewRes(m, "Invalid dice specification: no separating 'd'"), nil
 		}
 
 		numDie, err := strconv.Atoi(spec[0])
 		if err != nil || numDie < 1 || numDie > 36 {
-			return fmt.Sprintf("Invalid dice count: %s is not a number or is not between 1-36", spec[0]), nil
+			return NewRes(m, fmt.Sprintf("Invalid dice count: %s is not a number or is not between 1-36", spec[0])), nil
 		}
 		numDieFaces, err := strconv.Atoi(spec[1])
 		if err != nil || numDieFaces < 2 || numDieFaces > 64 {
-			return fmt.Sprintf("Invalid dice face count: %s is not a number or is not between 2-64", spec[0]), nil
+			return NewRes(m, fmt.Sprintf("Invalid dice face count: %s is not a number or is not between 2-64", spec[0])), nil
 		}
 
 		var result strings.Builder
@@ -84,7 +83,7 @@ func (Decide) Execute(m *irc.Message) (string, error) {
 		result.WriteByte('=')
 		result.WriteByte(' ')
 		result.WriteString(strconv.Itoa(sum))
-		return result.String(), nil
+		return NewRes(m, result.String()), nil
 	}
 
 	panic("Unreachable!")

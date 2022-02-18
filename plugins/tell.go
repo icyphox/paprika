@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"io"
+	"log"
 	"sort"
 	"strings"
 	"time"
@@ -17,18 +18,27 @@ import (
 )
 
 func init() {
-	Register(Tell{})
+	Register(TellPlug{})
+	RegisterMatcher(TellPlug{})
 }
 
 type Tell struct {
+	Key     []byte
 	From    string
 	To      string
 	Message string
 	Time    time.Time
 }
 
-func (Tell) Triggers() []string {
-	return []string{".tell", ""}
+type TellPlug struct{}
+
+func (TellPlug) Triggers() []string {
+	return []string{".tell"}
+}
+
+func (TellPlug) Matches(m *irc.Message) (string, error) {
+	// always match
+	return "", nil
 }
 
 // Encodes message into encoding/gob for storage.
@@ -45,9 +55,9 @@ func (t *Tell) saveTell() error {
 	// easy prefix scans for tells.
 	hash := hashMessage(t.Message)
 
-	key := []byte(fmt.Sprintf("tell/%s/", t.To))
-	key = append(key, hash...)
-	err := database.DB.Set(key, data.Bytes())
+	t.Key = []byte(fmt.Sprintf("tell/%s/", t.To))
+	t.Key = append(t.Key, hash...)
+	err := database.DB.Set(t.Key, data.Bytes())
 	if err != nil {
 		return err
 	}
@@ -75,25 +85,28 @@ func hashMessage(msg string) []byte {
 	return h.Sum(nil)
 }
 
-func (t Tell) Execute(m *irc.Message) (string, error) {
-	parts := strings.SplitN(m.Trailing(), " ", 3)
-
-	if parts[0] == ".tell" {
+func (TellPlug) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+	if cmd == ".tell" {
 		// No message passed.
-		if len(parts) == 2 {
-			return "Usage: .tell <nick> <message>", nil
+		if rest == "" {
+			return NewRes(m, "Usage: .tell <nick> <message>"), nil
 		}
 
-		t.From = strings.ToLower(m.Prefix.Name)
-		t.To = strings.ToLower(parts[1])
-		t.Message = parts[2]
-		t.Time = time.Now()
+		t := Tell{
+			From:    strings.ToLower(m.Prefix.Name),
+			To:      strings.ToLower(rest),
+			Message: rest,
+			Time:    time.Now(),
+		}
 
 		if err := t.saveTell(); err != nil {
-			return "Error saving message", err
+			return nil, err
 		}
 
-		return "Your message will be sent!", &IsPrivateNotice{t.From}
+		return &irc.Message{
+			Command: "NOTICE",
+			Params:  []string{t.From, "Your message will be sent!"},
+		}, nil
 	} else {
 		// React to all other messages here.
 		// Iterate over key prefixes to check if our tell
@@ -103,13 +116,12 @@ func (t Tell) Execute(m *irc.Message) (string, error) {
 		// All pending tells.
 		tells := []Tell{}
 
-		err := database.DB.Update(func(txn *badger.Txn) error {
+		err := database.DB.View(func(txn *badger.Txn) error {
 			it := txn.NewIterator(badger.DefaultIteratorOptions)
 			defer it.Close()
 			prefix := []byte("tell/" + strings.ToLower(m.Prefix.Name))
 			for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
 				item := it.Item()
-				k := item.Key()
 				err := item.Value(func(v []byte) error {
 					tell, err := getTell(v)
 					if err != nil {
@@ -121,20 +133,17 @@ func (t Tell) Execute(m *irc.Message) (string, error) {
 				if err != nil {
 					return fmt.Errorf("iterating: %w", err)
 				}
-				err = txn.Delete(k)
-				if err != nil {
-					return fmt.Errorf("deleting key: %w", err)
-				}
+
 			}
 			return nil
 		})
 		if err != nil {
-			return "", fmt.Errorf("fetching tells: %w", err)
+			return nil, fmt.Errorf("fetching tells: %w", err)
 		}
 
 		// No tells for this user.
 		if len(tells) == 0 {
-			return "", NoReply
+			return nil, NoReply
 		}
 
 		// Sort tells by time.
@@ -142,16 +151,23 @@ func (t Tell) Execute(m *irc.Message) (string, error) {
 			return tells[j].Time.Before(tells[i].Time)
 		})
 
-		// Formatted tells in a slice, for joining into a string
-		// later.
-		tellsFmtd := strings.Builder{}
-		for _, tell := range tells {
-			s := fmt.Sprintf(
+		tell := tells[0]
+
+		resp := &irc.Message{
+			Command: "NOTICE",
+			Params: []string{tell.To, fmt.Sprintf(
 				"%s sent you a message %s: %s\n",
 				tell.From, humanize.Time(tell.Time), tell.Message,
-			)
-			tellsFmtd.WriteString(s)
+			)},
 		}
-		return tellsFmtd.String(), &IsPrivateNotice{To: tells[0].To}
+
+		err = database.DB.Update(func(txn *badger.Txn) error {
+			return txn.Delete(tell.Key)
+		})
+		if err != nil {
+			log.Println(err)
+		}
+
+		return resp, nil
 	}
 }
