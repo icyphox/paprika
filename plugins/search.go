@@ -20,7 +20,7 @@ func init() {
 type Search struct{}
 
 func (Search) Triggers() []string {
-	return []string{".ddg", ".g", ".mdn", ".wiki"}
+	return []string{".ddg", ".g", ".mdn", ".wiki", ".imdb"}
 }
 
 var ddgClient = &http.Client{
@@ -135,13 +135,17 @@ func wiki(query string) (string, error) {
 	return ddg("site:https://en.wikipedia.org " + query)
 }
 
+func imdb(query string) (string, error) {
+	return ddg("site:https://www.imdb.com " + query)
+}
+
 func (Search) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
-	if rest == "" {
-		return NewRes(m, fmt.Sprintf("Usage: %s <query>", rest)), nil
-	}
 	res := &irc.Message{
 		Command: "PRIVMSG",
-		Params:  []string{m.Params[0], ""},
+		Params:  []string{m.Params[0], fmt.Sprintf("Usage: %s <query>", rest)},
+	}
+	if rest == "" {
+		return res, nil
 	}
 	var err error
 
@@ -152,6 +156,8 @@ func (Search) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 		res.Params[1], err = wiki(rest)
 	case ".g":
 		res.Params[1], err = google(rest)
+	case ".imdb":
+		res.Params[1], err = imdb(rest)
 	default:
 		res.Params[1], err = ddg(rest)
 	}

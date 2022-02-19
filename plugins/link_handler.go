@@ -35,7 +35,7 @@ func (LinkHandler) Matches(m *irc.Message) (string, error) {
 
 	for _, word := range strings.Split(msg, " ") {
 		u, err := url.Parse(word)
-		if err != nil && u != nil && (u.Scheme == "http" || u.Scheme == "https") {
+		if err == nil && u != nil && (u.Scheme == "http" || u.Scheme == "https") {
 			return word, nil
 		}
 	}
@@ -124,6 +124,10 @@ func byteCountSI(b int64) string {
 // a posted URL.
 func getDescriptionFromURL(url string) (string, error) {
 	resp, err := http.Get(url)
+	// try to handle crap like blah (fdasfdsafdsaf https://example.org/)
+	if resp != nil && resp.StatusCode == 404 && url[len(url)-1] == ')' {
+		resp, err = http.Get(url[:len(url)-1])
+	}
 
 	if err != nil {
 		return "", err
@@ -136,7 +140,7 @@ func getDescriptionFromURL(url string) (string, error) {
 		return "- Unknown Content -", nil
 	}
 
-	media, _, err := mime.ParseMediaType(contentType)
+	media, _, _ := mime.ParseMediaType(contentType)
 
 	if strings.Contains(media, "html") ||
 		strings.Contains(media, "xml") || strings.Contains(media, "xhtml") {

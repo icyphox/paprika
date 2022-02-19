@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"strings"
-	"sync"
 
 	"git.icyphox.sh/paprika/config"
 	"git.icyphox.sh/paprika/database"
@@ -29,9 +28,6 @@ func handleChatMessage(c *irc.Client, responses []*irc.Message, err error) {
 		c.WriteMessage(resp)
 	}
 }
-
-var cbs *plugins.Callback = nil
-var cblock = sync.RWMutex{}
 
 // GENERAL TODO: We need a way to have plugins send continuations or handlers
 //               so we can dynamically react to IRC commands.

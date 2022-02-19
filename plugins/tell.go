@@ -23,7 +23,6 @@ func init() {
 }
 
 type Tell struct {
-	Key     []byte
 	From    string
 	To      string
 	Message string
@@ -53,15 +52,27 @@ func (t *Tell) saveTell() error {
 	}
 	// Store key as 'tell/nick/hash'; should help with
 	// easy prefix scans for tells.
-	hash := hashMessage(t.Message)
-
-	t.Key = []byte(fmt.Sprintf("tell/%s/", t.To))
-	t.Key = append(t.Key, hash...)
-	err := database.DB.Set(t.Key, data.Bytes())
+	err := database.DB.Set(t.getKeyId(), data.Bytes())
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+// Encodes message into encoding/gob for storage.
+// We use a hash of the message in the key to ensure
+// we don't queue dupes.
+func (t Tell) getKeyId() []byte {
+	// Hash (SHA1) a message for use as key.
+	// Helps ensure we don't queue the same
+	// message over and over.
+	h := sha1.New()
+	io.WriteString(h, t.Message)
+	hash := h.Sum(nil)
+	// Store key as 'tell/nick/hash'; should help with
+	// easy prefix scans for tells.
+	Key := []byte(fmt.Sprintf("tell/%s/", t.To))
+	return append(Key, hash...)
 }
 
 // Decodes tell data from encoding/gob into a Tell.
@@ -74,15 +85,6 @@ func getTell(data []byte) (*Tell, error) {
 	}
 
 	return &t, nil
-}
-
-// Hash (SHA1) a message for use as key.
-// Helps ensure we don't queue the same
-// message over and over.
-func hashMessage(msg string) []byte {
-	h := sha1.New()
-	io.WriteString(h, msg)
-	return h.Sum(nil)
 }
 
 func (TellPlug) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
@@ -162,7 +164,7 @@ func (TellPlug) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) 
 		}
 
 		err = database.DB.Update(func(txn *badger.Txn) error {
-			return txn.Delete(tell.Key)
+			return txn.Delete(tell.getKeyId())
 		})
 		if err != nil {
 			log.Println(err)
