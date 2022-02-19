@@ -4,6 +4,8 @@ nick: paprika1234
 host: irc.rizon.net:6667
 # use the word true or false for this field
 tls: false
+# auto ignore any user with the name "bot" as a suffix
+ignoreBots: true
 
 # Sever password, sent as ("PASS :%s", pass)
 #pass: yourpass

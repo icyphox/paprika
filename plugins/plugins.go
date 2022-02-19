@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 
+	"git.icyphox.sh/paprika/config"
 	"gopkg.in/irc.v3"
 )
 
@@ -102,6 +103,10 @@ func likelyInvalidNick(nick string) bool {
 // Checks for triggers in a message and executes its
 // corresponding plugin, returning the response/error.
 func ProcessTrigger(m *irc.Message) ([]*irc.Message, error) {
+	// ignore anyone with a "bot" like name if configured.
+	if config.C.IgnoreBots && strings.HasSuffix(strings.ToLower(m.Name), "bot") {
+		return nil, NoReply
+	}
 	if !unlikelyDirectMessage(m.Params[0]) {
 		m.Params[0] = m.Name
 	}

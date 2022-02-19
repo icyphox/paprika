@@ -9,14 +9,15 @@ import (
 )
 
 type Config struct {
-	Nick string
-	Pass string
-	Host string
-	Sasl string
-	Tls bool
-	Channels []string
-	DbPath string `yaml:"db-path"`
-	ApiKeys map[string]string `yaml:"api-keys"`
+	Nick       string
+	Pass       string
+	Host       string
+	Sasl       string
+	Tls        bool
+	Channels   []string
+	DbPath     string            `yaml:"db-path"`
+	ApiKeys    map[string]string `yaml:"api-keys"`
+	IgnoreBots bool              `yaml:"ignore-bots"`
 }
 
 var C Config
@@ -69,4 +70,3 @@ func init() {
 		C.DbPath = getDbPath()
 	}
 }
-
