@@ -89,16 +89,20 @@ func getTell(data []byte) (*Tell, error) {
 
 func (TellPlug) Execute(cmd, rest string, c *irc.Client, m *irc.Message) {
 	if cmd == ".tell" {
+		target := strings.SplitN(rest, " ", 2)
 		// No message passed.
-		if rest == "" {
+		if rest == "" || len(target) == 1 {
 			c.WriteMessage(NewRes(m, "Usage: .tell <nick> <message>"))
 			return
 		}
 
+		to := target[0]
+		msg := target[1]
+
 		t := Tell{
 			From:    strings.ToLower(m.Prefix.Name),
-			To:      strings.ToLower(rest),
-			Message: rest,
+			To:      strings.ToLower(to),
+			Message: msg,
 			Time:    time.Now(),
 		}
 
@@ -145,16 +149,13 @@ func (TellPlug) Execute(cmd, rest string, c *irc.Client, m *irc.Message) {
 		if err != nil {
 			log.Println("fetching tells: %w", err)
 			return
-		}
-
-		// No tells for this user.
-		if len(tells) == 0 {
+		} else if len(tells) == 0 {
 			return
 		}
 
 		// Sort tells by time.
 		sort.Slice(tells, func(i, j int) bool {
-			return tells[j].Time.Before(tells[i].Time)
+			return tells[j].Time.After(tells[i].Time)
 		})
 
 		for _, tell := range tells {
