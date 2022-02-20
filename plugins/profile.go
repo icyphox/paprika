@@ -3,6 +3,7 @@ package plugins
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"git.icyphox.sh/paprika/database"
@@ -25,7 +26,7 @@ func (Profile) Triggers() []string {
 	}
 }
 
-func (Profile) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+func (Profile) Execute(cmd, rest string, c *irc.Client, m *irc.Message) {
 	var key string
 
 	switch cmd {
@@ -43,24 +44,29 @@ func (Profile) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 	if rest != "" {
 		val, err := database.DB.Get(database.ToKey(key, strings.ToLower(m.Prefix.Name)))
 		if err == badger.ErrKeyNotFound {
-			return NewRes(m, fmt.Sprintf(
+			c.WriteMessage(NewRes(m, fmt.Sprintf(
 				"Error fetching %s. Use '%s <link>' to set it.", key, cmd,
-			)), nil
+			)))
 		} else if err != nil {
-			return nil, err
+			log.Println(err)
+			return
 		}
 
-		return NewRes(m, fmt.Sprintf("\x02%s\x02: %s", m.Prefix.Name, string(val))), nil
+		c.WriteMessage(NewRes(m, fmt.Sprintf("\x02%s\x02: %s", m.Prefix.Name, string(val))))
+		return
 	} else {
 		// Querying @nick's thing.
 		if rest[0] == '@' {
 			val, err := database.DB.Get(database.ToKey(key, rest[1:]))
 			if err == badger.ErrKeyNotFound {
-				return NewRes(m, fmt.Sprintf("No %s for %s", key, rest[1:])), err
+				c.WriteMessage(NewRes(m, fmt.Sprintf("No %s for %s", key, rest[1:])))
+				return
 			} else if err != nil {
-				return nil, err
+				log.Println(err)
+				return
 			}
-			return NewRes(m, fmt.Sprintf("\x02%s\x02: %s", rest[1:], string(val))), nil
+			c.WriteMessage(NewRes(m, fmt.Sprintf("\x02%s\x02: %s", rest[1:], string(val))))
+			return
 		}
 		// User wants to set the thing.
 
@@ -69,8 +75,9 @@ func (Profile) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 			[]byte(rest),
 		)
 		if err != nil {
-			return nil, err
+			log.Println(err)
+		} else {
+			c.WriteMessage(NewRes(m, fmt.Sprintf("Saved your %s successfully", key)))
 		}
-		return NewRes(m, fmt.Sprintf("Saved your %s successfully", key)), nil
 	}
 }

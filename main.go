@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/tls"
-	"errors"
 	"io"
 	"log"
 	"net"
@@ -14,21 +13,6 @@ import (
 	"gopkg.in/irc.v3"
 )
 
-func handleChatMessage(c *irc.Client, responses []*irc.Message, err error) {
-	if errors.Is(err, plugins.NoReply) {
-		return
-	}
-
-	if err != nil {
-		log.Printf("error: %v", err)
-		return
-	}
-
-	for _, resp := range responses {
-		c.WriteMessage(resp)
-	}
-}
-
 // GENERAL TODO: We need a way to have plugins send continuations or handlers
 //               so we can dynamically react to IRC commands.
 //               This should mean we can also populate stateful information generically
@@ -39,37 +23,28 @@ func ircHandler(c *irc.Client, m *irc.Message) {
 		c.Write(config.SplitChannelList(config.C.Channels))
 	// TODO: Generalize this
 	case "JOIN":
-		err := plugins.SeenDoing(m)
-		if err != nil && err != plugins.NoReply {
-			log.Printf("error: %v", err)
-		}
-		response, err := plugins.GetIntro(m)
-		handleChatMessage(c, []*irc.Message{response}, err)
+		plugins.SeenDoing(c, m)
+		plugins.GetIntro(c, m)
 	case "PART", "QUIT":
-		err := plugins.SeenDoing(m)
-		if err != nil && err != plugins.NoReply {
-			log.Printf("error: %v", err)
-		}
+		plugins.SeenDoing(c, m)
 	// TODO: Generalize this
 	case "NOTICE":
-		response, err := plugins.CTCPReply(m)
-		handleChatMessage(c, []*irc.Message{response}, err)
+		plugins.CTCPReply(c, m)
 	case "PRIVMSG":
 		// Trim leading and trailing spaces to not trip up our
 		// plugins.
 		m.Params[1] = strings.TrimSpace(m.Params[1])
-		response, err := plugins.ProcessTrigger(m)
-		handleChatMessage(c, response, err)
+		plugins.ProcessTrigger(c, m)
 	// TODO: Generalize this
 	case "401":
-		response, err := plugins.NoSuchUser(m)
-		handleChatMessage(c, []*irc.Message{response}, err)
+		plugins.NoSuchUser(c, m)
 	}
 }
 
 func main() {
 	var err error
 	var conn io.ReadWriteCloser
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	if !config.C.Tls {
 		conn, err = net.Dial("tcp", config.C.Host)
 	} else {

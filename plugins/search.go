@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -139,13 +140,14 @@ func imdb(query string) (string, error) {
 	return ddg("site:https://www.imdb.com " + query)
 }
 
-func (Search) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+func (Search) Execute(cmd, rest string, c *irc.Client, m *irc.Message) {
 	res := &irc.Message{
 		Command: "PRIVMSG",
 		Params:  []string{m.Params[0], fmt.Sprintf("Usage: %s <query>", rest)},
 	}
 	if rest == "" {
-		return res, nil
+		c.WriteMessage(res)
+		return
 	}
 	var err error
 
@@ -162,5 +164,9 @@ func (Search) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 		res.Params[1], err = ddg(rest)
 	}
 
-	return res, err
+	if err != nil {
+		log.Println(err)
+	} else {
+		c.WriteMessage(res)
+	}
 }

@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"fmt"
+	"log"
 
 	"git.icyphox.sh/paprika/database"
 	"github.com/dgraph-io/badger/v3"
@@ -18,36 +19,38 @@ func (Introduction) Triggers() []string {
 	return []string{".intro"}
 }
 
-func (Introduction) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+func (Introduction) Execute(cmd, rest string, c *irc.Client, m *irc.Message) {
 	userKey := database.ToKey("introduction", m.Name)
 	if rest == "" {
 		intro, err := database.DB.Get(userKey)
 		if err == badger.ErrKeyNotFound {
-			return NewRes(m, fmt.Sprintf("Usage: %s <intro text>", cmd)), nil
+			c.WriteMessage(NewRes(m, fmt.Sprintf("Usage: %s <intro text>", cmd)))
+			return
 		} else if err != nil {
-			return nil, err
+			log.Println(err)
+			return
 		} else {
-			return NewRes(m, string(intro)), nil
+			c.WriteMessage(NewRes(m, string(intro)))
+			return
 		}
 	}
 
 	err := database.DB.Set(userKey, []byte(rest))
 	if err != nil {
-		return nil, err
+		log.Println(err)
+		return
 	}
-	return nil, NoReply
 }
 
-func GetIntro(m *irc.Message) (*irc.Message, error) {
+func GetIntro(c *irc.Client, m *irc.Message) {
 	intro, err := database.DB.Get(database.ToKey("introduction", m.Name))
 	if err == badger.ErrKeyNotFound {
-		return nil, NoReply
 	} else if err != nil {
-		return nil, err
+		log.Println(err)
 	} else {
-		return &irc.Message{
+		c.WriteMessage(&irc.Message{
 			Command: "PRIVMSG",
 			Params:  []string{m.Params[0], string(intro)},
-		}, nil
+		})
 	}
 }

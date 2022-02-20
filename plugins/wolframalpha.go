@@ -3,6 +3,7 @@ package plugins
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -20,9 +21,10 @@ func (WolframAlpha) Triggers() []string {
 	return []string{".wa", ".calc"}
 }
 
-func (WolframAlpha) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+func (WolframAlpha) Execute(cmd, rest string, c *irc.Client, m *irc.Message) {
 	if rest == "" {
-		return NewRes(m, fmt.Sprintf("Usage: %s <query>", cmd)), nil
+		c.WriteMessage(NewRes(m, fmt.Sprintf("Usage: %s <query>", cmd)))
+		return
 	}
 	query := url.QueryEscape(rest)
 
@@ -33,16 +35,21 @@ func (WolframAlpha) Execute(cmd, rest string, m *irc.Message) (*irc.Message, err
 		)
 
 		r, err := http.Get(url)
-		if err != nil || r.StatusCode != 200 {
-			return nil, err
+		if err != nil {
+			log.Println(err)
+			return
+		} else if r.StatusCode != 200 {
+			log.Println("We got a bad reply from Wolfram, check API key.")
+			return
 		}
 
 		result, err := io.ReadAll(r.Body)
 		if err != nil {
-			return nil, err
+			log.Println(err)
+		} else {
+			c.WriteMessage(NewRes(m, fmt.Sprintf("\x02Result:\x02 %s", string(result))))
 		}
-		return NewRes(m, fmt.Sprintf("\x02Result:\x02 %s", string(result))), nil
+	} else {
+		c.WriteMessage(NewRes(m, "Plugin Disabled (No API Key)"))
 	}
-
-	return NewRes(m, "Plugin Disabled"), nil
 }

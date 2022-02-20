@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"log"
 	"time"
 
 	"git.icyphox.sh/paprika/database"
@@ -32,12 +33,12 @@ type LastSeenInfo struct {
 	Time time.Time
 }
 
-func (Seen) Matches(m *irc.Message) (string, error) {
+func (Seen) Matches(c *irc.Client, m *irc.Message) (string, bool) {
 	// always match
-	return "", nil
+	return "", true
 }
 
-func (Seen) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+func (Seen) Execute(cmd, rest string, c *irc.Client, m *irc.Message) {
 	var reply string
 	if m.Command == "PRIVMSG" && cmd == ".seen" {
 		if rest == "" {
@@ -48,12 +49,14 @@ func (Seen) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 			if err == badger.ErrKeyNotFound {
 				reply = fmt.Sprintf("I have not seen %s", rest)
 			} else if err != nil {
-				return nil, err
+				log.Panicln(err)
+				return
 			} else {
 				var lastSeen LastSeenInfo
 				err = gob.NewDecoder(bytes.NewReader(lastS)).Decode(&lastSeen)
 				if err != nil {
-					return nil, err
+					log.Println(err)
+					return
 				}
 
 				humanized := humanize.Time(lastSeen.Time)
@@ -84,20 +87,18 @@ func (Seen) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 	var enc bytes.Buffer
 	err := gob.NewEncoder(&enc).Encode(seenDoing)
 	if err != nil {
-		return nil, err
+		log.Println(err)
+		return
 	}
 
 	nameKey := database.ToKey("seen", m.Name)
 	database.DB.Set(nameKey, enc.Bytes())
 
-	if reply == "" {
-		return nil, NoReply
-	} else {
-		return NewRes(m, reply), nil
+	if reply != "" {
+		c.WriteMessage(NewRes(m, reply))
 	}
 }
 
-func SeenDoing(m *irc.Message) error {
-	_, err := Seen{}.Execute("", "", m)
-	return err
+func SeenDoing(c *irc.Client, m *irc.Message) {
+	Seen{}.Execute("", "", c, m)
 }

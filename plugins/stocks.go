@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -107,16 +108,21 @@ func getStock(symbol, apiKey string) (string, error) {
 	return outRes.String(), nil
 }
 
-func (Stocks) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+func (Stocks) Execute(cmd, rest string, c *irc.Client, m *irc.Message) {
 	if rest == "" {
-		return NewRes(m, fmt.Sprintf("Usage: %s <Ticker>", rest)), nil
+		c.WriteMessage(NewRes(m, fmt.Sprintf("Usage: %s <Ticker>", rest)))
+		return
 	}
 	sym := strings.ToUpper(rest)
 
 	if apiKey, ok := config.C.ApiKeys["iex"]; ok {
 		res, err := getStock(sym, apiKey)
-		return NewRes(m, res), err
+		if err != nil {
+			log.Println(err)
+		} else {
+			c.WriteMessage(NewRes(m, res))
+		}
+	} else {
+		c.WriteMessage(NewRes(m, "Plugin Disabled (No API Key)"))
 	}
-
-	return nil, NoIEXApi
 }

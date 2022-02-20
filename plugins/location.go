@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"fmt"
+	"log"
 
 	"git.icyphox.sh/paprika/plugins/location"
 	"gopkg.in/irc.v3"
@@ -17,16 +18,16 @@ func (Location) Triggers() []string {
 	return []string{".loc", ".location"}
 }
 
-func (Location) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
-	if rest == "" {
-		return NewRes(m, fmt.Sprintf("Usage: %s <location>", cmd)), nil
+func (Location) Execute(cmd, loc string, c *irc.Client, m *irc.Message) {
+	if loc == "" {
+		c.WriteMessage(NewRes(m, fmt.Sprintf("Usage: %s <location>", cmd)))
+		return
 	}
-	loc := rest
 
 	err := location.SetLocation(loc, m.Prefix.Name)
 	if err != nil {
-		return nil, err
+		log.Println(err)
+	} else {
+		c.WriteMessage(NewRes(m, "Successfully set location"))
 	}
-
-	return NewRes(m, "Successfully set location"), nil
 }

@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"log"
 	"strings"
 
 	"git.icyphox.sh/paprika/plugins/location"
@@ -25,16 +26,17 @@ func (Weather) Triggers() []string {
 	}
 }
 
-func (Weather) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+func (Weather) Execute(cmd, rest string, c *irc.Client, m *irc.Message) {
 	var loc string
 	if rest == "" {
 		var err error
 		// Check if they've already set their location
 		loc, err = location.GetLocation(m.Prefix.Name)
 		if err == badger.ErrKeyNotFound {
-			return NewRes(m, "Location not set. Use '.loc <location>' to set it."), nil
+			c.WriteMessage(NewRes(m, "Location not set. Use '.loc <location>' to set it."))
 		} else if err != nil {
-			return nil, err
+			log.Panicln(err)
+			return
 		}
 	}
 
@@ -45,9 +47,11 @@ func (Weather) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 			var err error
 			loc, err = location.GetLocation(rest[1:])
 			if err == badger.ErrKeyNotFound {
-				return NewRes(m, "Location not set. Use '.loc <location>' to set it."), nil
+				c.WriteMessage(NewRes(m, "Location not set. Use '.loc <location>' to set it."))
+				return
 			} else if err != nil {
-				return nil, err
+				log.Println(err)
+				return
 			}
 		} else {
 			loc = rest
@@ -56,11 +60,13 @@ func (Weather) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 
 	li, err := location.GetLocationInfo(loc)
 	if err != nil {
-		return nil, err
+		log.Println(err)
+		return
 	}
 
 	if len(li.Features) == 0 {
-		return NewRes(m, "Error getting location info. Try again."), nil
+		c.WriteMessage(NewRes(m, "Error getting location info. Try again."))
+		return
 	}
 	coordinates := li.Features[0].Geometry.Coordinates
 	label := li.Features[0].Properties.Geocoding.Label
@@ -69,16 +75,21 @@ func (Weather) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 	case ".t", ".time":
 		time, err := time.GetTime(coordinates, label)
 		if err != nil {
-			return nil, err
+			log.Println(err)
+			return
+		} else {
+			c.WriteMessage(NewRes(m, time))
 		}
-		return NewRes(m, time), nil
+		return
 	case ".w", ".weather":
 
 		info, err := weather.GetWeather(coordinates, label)
 		if err != nil {
-			return nil, err
+			log.Println(err)
+			return
+		} else {
+			c.WriteMessage(NewRes(m, info))
 		}
-		return NewRes(m, info), nil
+		return
 	}
-	return nil, NoReply
 }

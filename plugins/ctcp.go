@@ -16,7 +16,7 @@ func (Ctcp) Triggers() []string {
 	return []string{"\x01VERSION\x01", "\x01PING"}
 }
 
-func (Ctcp) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+func (Ctcp) Execute(cmd, rest string, c *irc.Client, m *irc.Message) {
 	msg := m.Trailing()
 	reply := &irc.Message{
 		Tags:    nil,
@@ -31,5 +31,5 @@ func (Ctcp) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 		reply.Params[1] = msg
 	}
 
-	return reply, nil
+	c.WriteMessage(reply)
 }

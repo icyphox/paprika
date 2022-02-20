@@ -2,6 +2,7 @@ package plugins
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	coingecko "git.icyphox.sh/paprika/plugins/coingecko"
@@ -41,12 +42,13 @@ func formatCgNum(field string, value float64, percent bool) string {
 	}
 }
 
-func (CoinGecko) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+func (CoinGecko) Execute(cmd, rest string, c *irc.Client, m *irc.Message) {
 	var coin string
 	if rest == "" {
 		for _, twoarg := range twoArg {
 			if cmd == twoarg {
-				return NewRes(m, fmt.Sprintf("Usage: %s <Ticker>", cmd)), nil
+				c.WriteMessage(NewRes(m, fmt.Sprintf("Usage: %s <Ticker>", cmd)))
+				return
 			}
 		}
 		for _, alias := range aliases {
@@ -61,21 +63,26 @@ func (CoinGecko) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error)
 
 	err := coingecko.CheckUpdateCoinList()
 	if err != nil {
-		return nil, err
+		log.Println(err)
+		return
 	}
 
 	cid, err := coingecko.GetCoinId(coin)
 	if err != nil {
-		return nil, err
+		log.Println(err)
+		return
 	} else if cid == "" {
-		return NewRes(m, fmt.Sprintf("No such coin found: %s", coin)), nil
+		c.WriteMessage(NewRes(m, fmt.Sprintf("No such coin found: %s", coin)))
+		return
 	}
 
 	stats, err := coingecko.GetCoinPrice(cid)
 	if err != nil {
-		return nil, err
+		log.Println(err)
+		return
 	} else if stats == nil {
-		return NewRes(m, fmt.Sprintf("No such coin found: %s", coin)), nil
+		c.WriteMessage(NewRes(m, fmt.Sprintf("No such coin found: %s", coin)))
+		return
 	}
 
 	mData := stats.MarketData
@@ -98,5 +105,6 @@ func (CoinGecko) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error)
 	outRes.WriteString(formatCgNum("60d", mData.Change60d, true))
 	outRes.WriteString(formatCgNum("1y", mData.Change1y, true))
 
-	return NewRes(m, outRes.String()), nil
+	c.WriteMessage(NewRes(m, outRes.String()))
+	return
 }

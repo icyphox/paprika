@@ -3,6 +3,7 @@ package plugins
 import (
 	"fmt"
 	"io"
+	"log"
 	"mime"
 	"net/http"
 	"net/url"
@@ -27,23 +28,23 @@ func (LinkHandler) Triggers() []string {
 	return nil
 }
 
-func (LinkHandler) Matches(m *irc.Message) (string, error) {
+func (LinkHandler) Matches(_ *irc.Client, m *irc.Message) (string, bool) {
 	msg := m.Trailing()
 	if strings.HasPrefix(msg, ".") {
-		return "", NoReply
+		return "", false
 	}
 
 	for _, word := range strings.Split(msg, " ") {
 		u, err := url.Parse(word)
 		if err == nil && u != nil && (u.Scheme == "http" || u.Scheme == "https") {
-			return word, nil
+			return word, true
 		}
 	}
 
-	return "", NoReply
+	return "", false
 }
 
-func (LinkHandler) Execute(match, msg string, m *irc.Message) (*irc.Message, error) {
+func (LinkHandler) Execute(match, msg string, c *irc.Client, m *irc.Message) {
 	u, err := url.Parse(match)
 	if err != nil {
 		panic("UNREACHABLE: We parse this in Matches, wtf?")
@@ -54,18 +55,19 @@ func (LinkHandler) Execute(match, msg string, m *irc.Message) (*irc.Message, err
 	// non-generic. I.e it belongs to a specific website, like
 	// stackoverflow or youtube.
 	if u.Hostname() == "www.youtube.com" || u.Hostname() == "youtube.com" || u.Hostname() == "youtu.be" {
-		// TODO finish this
 		yt, err := YoutubeDescriptionFromUrl(u)
 		if err != nil {
-			return nil, err
+			log.Println(err)
+		} else {
+			c.WriteMessage(NewRes(m, yt))
 		}
-		return NewRes(m, yt), nil
 	} else {
 		desc, err := getDescriptionFromURL(match)
 		if err != nil {
-			return nil, err
+			log.Println(err)
+		} else {
+			c.WriteMessage(NewRes(m, fmt.Sprintf("[URL] %s (%s)\n", desc, u.Hostname())))
 		}
-		return NewRes(m, fmt.Sprintf("[URL] %s (%s)\n", desc, u.Hostname())), nil
 	}
 }
 

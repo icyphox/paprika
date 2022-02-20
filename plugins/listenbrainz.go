@@ -2,6 +2,8 @@
 package plugins
 
 import (
+	"log"
+
 	"git.icyphox.sh/paprika/plugins/listenbrainz"
 	"github.com/dgraph-io/badger/v3"
 	"gopkg.in/irc.v3"
@@ -19,33 +21,34 @@ func (Listenbrainz) Triggers() []string {
 	return []string{".lbz"}
 }
 
-func (Listenbrainz) Execute(cmd, msg string, m *irc.Message) (*irc.Message, error) {
+func (Listenbrainz) Execute(cmd, msg string, c *irc.Client, m *irc.Message) {
 	switch cmd {
 	case ".lbz":
 		if msg == "" {
 			err := listenbrainz.Setup(msg, m.Prefix.Name)
 			if err != nil {
-				return nil, err
+				log.Println(err)
+			} else {
+				c.WriteMessage(NewRes(m, "Successfully set Listenbrainz username"))
 			}
-			return NewRes(m, "Successfully set Listenbrainz username"), nil
 		} else {
-			return NewRes(m, "Usage: .lbz <username>"), nil
+			c.WriteMessage(NewRes(m, "Usage: .lbz <username>"))
 		}
 	case ".np":
 		user, err := listenbrainz.GetUser(m.Prefix.Name)
 		if err == badger.ErrKeyNotFound {
-			return NewRes(m, "User not found. Set it using '.lbz <username>'"), nil
+			c.WriteMessage(NewRes(m, "User not found. Set it using '.lbz <username>'"))
+			return
 		} else if err != nil {
-			return nil, err
+			log.Println(err)
+			return
 		}
 
 		np, err := listenbrainz.NowPlaying(user)
 		if err != nil {
-			return nil, err
+			log.Println(err)
+		} else {
+			c.WriteMessage(NewRes(m, np))
 		}
-
-		return NewRes(m, np), nil
 	}
-
-	panic("Unreachable!")
 }

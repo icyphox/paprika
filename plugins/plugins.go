@@ -1,7 +1,6 @@
 package plugins
 
 import (
-	"errors"
 	"strings"
 
 	"git.icyphox.sh/paprika/config"
@@ -22,7 +21,7 @@ func NewRes(m *irc.Message, reply string) *irc.Message {
 
 type Plugin interface {
 	Triggers() []string
-	Execute(command string, rest string, m *irc.Message) (*irc.Message, error)
+	Execute(command string, rest string, c *irc.Client, m *irc.Message)
 }
 
 var simplePlugins = make(map[string]Plugin)
@@ -41,40 +40,13 @@ type MatchPlugin interface {
 	Plugin
 	// Execute's command will be the matching value returned.
 	// If the returned "match string" is empty, it is assumed to not match.
-	Matches(m *irc.Message) (string, error)
+	Matches(c *irc.Client, m *irc.Message) (string, bool)
 }
 
 var matchers = []MatchPlugin{}
 
 func RegisterMatcher(p MatchPlugin) {
 	matchers = append(matchers, p)
-}
-
-// This Error is used to signal a NAK so other plugins
-// can attempt to parse the result
-// This is useful for broad prefix matching or future regexp
-// functions, other special errors may need defining
-// to determin priority or to "concatenate" output.
-var NoReply = errors.New("No Reply")
-
-// Due to racey nature of the handler in main.go being invoked as a goroutine,
-// it's hard to have race free way of building correct state of the IRC world.
-// This is a temporary (lol) hack to check if the PRIVMSG target looks like a
-// IRC nickname. We assume that any IRC nickname target would be us, unless
-// the IRCd we are on is neurotic
-//
-// Normally one would use the ISUPPORT details to learn what prefixes are used
-// on the network's valid channel names.
-//
-// E.G. ISUPPORT ... CHANTYPES=# ... where # would be the only valid channel name
-// allowed on the IRCd.
-func unlikelyDirectMessage(target string) bool {
-	if len(target) < 1 {
-		panic("Conformity Error, IRCd sent us a PRIVMSG with an empty target and message.")
-	}
-
-	sym := target[0] // we only care about the byte (ASCII)
-	return likelyInvalidNickChr(sym)
 }
 
 func likelyInvalidNickChr(sym byte) bool {
@@ -102,31 +74,19 @@ func likelyInvalidNick(nick string) bool {
 
 // Checks for triggers in a message and executes its
 // corresponding plugin, returning the response/error.
-func ProcessTrigger(m *irc.Message) ([]*irc.Message, error) {
+func ProcessTrigger(c *irc.Client, m *irc.Message) {
 	// ignore anyone with a "bot" like name if configured.
 	if config.C.IgnoreBots && strings.HasSuffix(strings.ToLower(m.Name), "bot") {
-		return nil, NoReply
+		return
 	}
-	if !unlikelyDirectMessage(m.Params[0]) {
+	if !c.FromChannel(m) {
 		m.Params[0] = m.Name
 	}
 
-	var replies []*irc.Message
-
 	for _, matcher := range matchers {
-		match, err := matcher.Matches(m)
-		var reply *irc.Message
-		if err == nil {
-			reply, err = matcher.Execute(match, m.Trailing(), m)
+		if match, ok := matcher.Matches(c, m); ok {
+			matcher.Execute(match, m.Trailing(), c, m)
 		}
-
-		if err == NoReply {
-			continue
-		} else if err != nil {
-			return nil, err
-		}
-
-		replies = append(replies, reply)
 	}
 
 	command_rest := strings.SplitN(m.Trailing(), " ", 2)
@@ -137,18 +97,6 @@ func ProcessTrigger(m *irc.Message) ([]*irc.Message, error) {
 	}
 
 	if plug, ok := simplePlugins[command]; ok {
-		reply, err := plug.Execute(command, message, m)
-		if err == NoReply {
-		} else if err != nil {
-			return nil, err
-		} else {
-			replies = append(replies, reply)
-		}
-	}
-
-	if len(replies) == 0 {
-		return nil, NoReply
-	} else {
-		return replies, nil
+		plug.Execute(command, message, c, m)
 	}
 }

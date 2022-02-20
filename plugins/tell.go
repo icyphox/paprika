@@ -32,12 +32,12 @@ type Tell struct {
 type TellPlug struct{}
 
 func (TellPlug) Triggers() []string {
-	return []string{".tell"}
+	return []string{".tell", ".showtells"}
 }
 
-func (TellPlug) Matches(m *irc.Message) (string, error) {
+func (TellPlug) Matches(c *irc.Client, m *irc.Message) (string, bool) {
 	// always match
-	return "", nil
+	return "", true
 }
 
 // Encodes message into encoding/gob for storage.
@@ -87,11 +87,12 @@ func getTell(data []byte) (*Tell, error) {
 	return &t, nil
 }
 
-func (TellPlug) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+func (TellPlug) Execute(cmd, rest string, c *irc.Client, m *irc.Message) {
 	if cmd == ".tell" {
 		// No message passed.
 		if rest == "" {
-			return NewRes(m, "Usage: .tell <nick> <message>"), nil
+			c.WriteMessage(NewRes(m, "Usage: .tell <nick> <message>"))
+			return
 		}
 
 		t := Tell{
@@ -102,13 +103,15 @@ func (TellPlug) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) 
 		}
 
 		if err := t.saveTell(); err != nil {
-			return nil, err
+			log.Println(err)
+			return
 		}
 
-		return &irc.Message{
+		c.WriteMessage(&irc.Message{
 			Command: "NOTICE",
 			Params:  []string{t.From, "Your message will be sent!"},
-		}, nil
+		})
+		return
 	} else {
 		// React to all other messages here.
 		// Iterate over key prefixes to check if our tell
@@ -140,12 +143,13 @@ func (TellPlug) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) 
 			return nil
 		})
 		if err != nil {
-			return nil, fmt.Errorf("fetching tells: %w", err)
+			log.Println("fetching tells: %w", err)
+			return
 		}
 
 		// No tells for this user.
 		if len(tells) == 0 {
-			return nil, NoReply
+			return
 		}
 
 		// Sort tells by time.
@@ -153,23 +157,29 @@ func (TellPlug) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) 
 			return tells[j].Time.Before(tells[i].Time)
 		})
 
-		tell := tells[0]
+		for _, tell := range tells {
+			resp := &irc.Message{
+				Command: "NOTICE",
+				Params: []string{tell.To, fmt.Sprintf(
+					"%s sent you a message %s: %s\n",
+					tell.From, humanize.Time(tell.Time), tell.Message,
+				)},
+			}
 
-		resp := &irc.Message{
-			Command: "NOTICE",
-			Params: []string{tell.To, fmt.Sprintf(
-				"%s sent you a message %s: %s\n",
-				tell.From, humanize.Time(tell.Time), tell.Message,
-			)},
+			err = database.DB.Update(func(txn *badger.Txn) error {
+				return txn.Delete(tell.getKeyId())
+			})
+
+			if err != nil {
+				log.Println(err)
+			} else {
+				c.WriteMessage(resp)
+			}
+
+			// only show one at a time unless .showtells
+			if cmd != ".showtells" {
+				break
+			}
 		}
-
-		err = database.DB.Update(func(txn *badger.Txn) error {
-			return txn.Delete(tell.getKeyId())
-		})
-		if err != nil {
-			log.Println(err)
-		}
-
-		return resp, nil
 	}
 }

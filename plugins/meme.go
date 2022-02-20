@@ -30,7 +30,7 @@ func (Meme) Triggers() []string {
 	}
 }
 
-func (Meme) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+func (Meme) Execute(cmd, rest string, c *irc.Client, m *irc.Message) {
 	rand.Seed(time.Now().Unix())
 	var target string
 	if rest != "" {
@@ -76,5 +76,5 @@ func (Meme) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 		panic("Unreachable!")
 	}
 
-	return NewRes(m, response), nil
+	c.WriteMessage(NewRes(m, response))
 }

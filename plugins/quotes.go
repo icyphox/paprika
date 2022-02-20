@@ -227,10 +227,11 @@ const (
 	parseGetParam
 )
 
-func (Quotes) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+func (Quotes) Execute(cmd, rest string, c *irc.Client, m *irc.Message) {
 	params := strings.Split(m.Trailing(), " ")
 	if len(params) == 1 {
-		return NewRes(m, ".q [ add ] nickname [ quote | search | number ]"), nil
+		c.WriteMessage(NewRes(m, ".q [ add ] nickname [ quote | search | number ]"))
+		return
 	}
 
 	pState := start
@@ -261,7 +262,8 @@ func (Quotes) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 			word = strings.TrimPrefix(word, "<")
 			word = strings.TrimSuffix(word, ">")
 			if len(word) == 0 {
-				return NewRes(m, "Invalid nickname given"), nil
+				c.WriteMessage(NewRes(m, "Invalid nickname given"))
+				return
 			}
 			// This is used elsewhere to check the prefix of a "target"
 			// if it's true, then this word still has a prefix we can
@@ -270,12 +272,14 @@ func (Quotes) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 				word = word[1:]
 			}
 			if len(word) == 0 {
-				return NewRes(m, "Invalid nickname given"), nil
+				c.WriteMessage(NewRes(m, "Invalid nickname given"))
+				return
 			}
 			// we only allow "< " prefix, not "<" + 2*sym
 			for j := 0; j < len(word); j++ {
 				if likelyInvalidNickChr(word[j]) {
-					return NewRes(m, fmt.Sprintf("Invalid nickname: %s", word)), nil
+					c.WriteMessage(NewRes(m, fmt.Sprintf("Invalid nickname: %s", word)))
+					return
 				}
 			}
 			nick = word
@@ -283,10 +287,16 @@ func (Quotes) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 			if cState == addQ {
 				quote := strings.Join(params[i+1:], " ")
 				if len(quote) == 0 {
-					return NewRes(m, "Empty quote not allowed."), nil
+					c.WriteMessage(NewRes(m, "Empty quote not allowed."))
+					return
 				}
 				res, err := addQuote(keyPrefix, []byte(quote))
-				return NewRes(m, res), err
+				if err != nil {
+					log.Println(err)
+				} else {
+					c.WriteMessage(NewRes(m, res))
+				}
+				return
 			} else {
 				pState = parseGetParam
 			}
@@ -295,23 +305,42 @@ func (Quotes) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
 				qnum, err := strconv.Atoi(word)
 				if err != nil {
 					res, err := findQuotes(nick, keyPrefix, []byte(word))
-					return NewRes(m, res), err
+					if err != nil {
+						log.Println(err)
+					} else {
+						c.WriteMessage(NewRes(m, res))
+					}
+					return
 				} else {
 					res, err := getQuote(nick, qnum, keyPrefix)
-					return NewRes(m, res), err
+					if err != nil {
+						log.Println(err)
+					} else {
+						c.WriteMessage(NewRes(m, res))
+					}
+					return
 				}
 			} else {
 				quote := strings.Join(params[i+1:], " ")
 				res, err := findQuotes(nick, keyPrefix, []byte(quote))
-				return NewRes(m, res), err
+				if err != nil {
+					log.Println(err)
+				} else {
+					c.WriteMessage(NewRes(m, res))
+				}
+				return
 			}
 		}
 	}
 	// If no number given, use 0 to indicate random quote.
 	if pState == parseGetParam {
 		res, err := getQuote(nick, randomQuote, keyPrefix)
-		return NewRes(m, res), err
+		if err != nil {
+			log.Println(err)
+		} else {
+			c.WriteMessage(NewRes(m, res))
+		}
 	} else {
-		return NewRes(m, "Invalid number of parameters."), nil
+		c.WriteMessage(NewRes(m, "Invalid number of parameters."))
 	}
 }

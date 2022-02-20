@@ -18,14 +18,13 @@ func (Hello) Triggers() []string {
 	return []string{".hello"}
 }
 
-func (Hello) Matches(m *irc.Message) (string, error) {
-	if strings.HasPrefix(m.Trailing(), "paprika") {
-		return "paprika", nil
+func (Hello) Matches(c *irc.Client, m *irc.Message) (string, bool) {
+	if strings.Contains(m.Trailing(), c.CurrentNick()) {
+		return m.Prefix.Name, true
 	}
-
-	return "", NoReply
+	return "", false
 }
 
-func (Hello) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
-	return NewRes(m, "hello, "+m.Prefix.Name), nil
+func (Hello) Execute(matched, rest string, c *irc.Client, m *irc.Message) {
+	c.WriteMessage(NewRes(m, "hello, "+matched))
 }

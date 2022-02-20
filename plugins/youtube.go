@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 	"time"
@@ -21,18 +22,20 @@ func (Youtube) Triggers() []string {
 	return []string{".yt"}
 }
 
-func (Youtube) Execute(cmd, rest string, m *irc.Message) (*irc.Message, error) {
+func (Youtube) Execute(cmd, rest string, c *irc.Client, m *irc.Message) {
 	if rest == "" {
-		return NewRes(m, "Usage: .yt <query>"), nil
+		c.WriteMessage(NewRes(m, "Usage: .yt <query>"))
+		return
 	}
 
 	reply, err := YoutubeSearch(rest)
 	if err == NoYtApiKey {
-		return NewRes(m, "YT Plugin is disabled."), nil
+		c.WriteMessage(NewRes(m, "Plugin is disabled (No API Key)"))
 	} else if err != nil {
-		return nil, err
+		log.Println(err)
+	} else {
+		c.WriteMessage(NewRes(m, reply))
 	}
-	return NewRes(m, reply), nil
 }
 
 func init() {
