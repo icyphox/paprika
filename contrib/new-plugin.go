@@ -37,7 +37,7 @@ func (%s) Triggers() []string {
 	return []string{}
 }
 
-func (%s) Execute(m *irc.Message) (string, error) {
+func (%s) Execute(cmd, rest string, c *irc.Client, m *irc.Message) {
 	return "", nil
 }`
 	out := fmt.Sprintf(template, tc, tc, tc, tc)
