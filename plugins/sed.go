@@ -76,7 +76,7 @@ func (h *historyBuffer) findMessage(e *historyEntry) bool {
 
 var histbuf = historyBuffer{
 	head: 0,
-	buff: make([]historyEntry, 500, 500),
+	buff: make([]historyEntry, 500),
 	lock: sync.Mutex{},
 }
 
