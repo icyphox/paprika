@@ -21,24 +21,11 @@ func (Sed) Triggers() []string {
 	return []string{".s", ".sed"}
 }
 
-const (
-	global int = iota
-	pos1   int = iota
-	pos2   int = iota
-	pos3   int = iota
-	pos4   int = iota
-	pos5   int = iota
-	pos6   int = iota
-	pos7   int = iota
-	pos8   int = iota
-	pos9   int = iota
-)
-
 type SedCommand struct {
-	Delim    rune
-	Target   string
-	Replace  string
-	Position int
+	Delim   rune
+	Target  string
+	Replace string
+	Nick    string
 }
 
 type historyEntry struct {
@@ -72,8 +59,7 @@ func (h *historyBuffer) findMessage(e *historyEntry) bool {
 	defer h.lock.Unlock()
 
 	// Head is start of next, head-1 is the message that triggered this.
-	start := h.head - 2
-	for start != h.head {
+	for start := h.head - 2; start != h.head; start-- {
 		if start < 0 {
 			start = len(h.buff) - 1
 		}
@@ -90,7 +76,7 @@ func (h *historyBuffer) findMessage(e *historyEntry) bool {
 
 var histbuf = historyBuffer{
 	head: 0,
-	buff: make([]historyEntry, 500),
+	buff: make([]historyEntry, 500, 500),
 	lock: sync.Mutex{},
 }
 
@@ -98,7 +84,6 @@ var (
 	ErrSedNotSubstitute = errors.New("not a substitute command")
 	ErrSedTooShort      = errors.New("sed command too short")
 	ErrSedIncomplete    = errors.New("too many or too few divisions")
-	ErrSedBadPos        = errors.New("bad position argument")
 )
 
 func fromString(s string) (*SedCommand, error) {
@@ -126,18 +111,7 @@ func fromString(s string) (*SedCommand, error) {
 
 	comm.Target = parts[1]
 	comm.Replace = fmt.Sprintf("\x02%s\x02", parts[2])
-	if parts[3] == "" {
-		comm.Position = pos1
-	} else {
-		switch parts[3][0] {
-		case 'g':
-			comm.Position = global - 1 // 0 to replace does nothing.
-		case '1', '2', '3', '4', '5', '6', '7', '8', '9':
-			comm.Position = int(parts[3][0])
-		default:
-			return nil, ErrSedBadPos
-		}
-	}
+	comm.Nick = parts[3]
 
 	return comm, nil
 }
@@ -161,21 +135,25 @@ func (Sed) Execute(sedstr, rest string, c *irc.Client, m *irc.Message) {
 				m.Params[0],
 				"usage: s/string(s) to replace/replacement/g <- you can use numbers from 1-9 for specific position"},
 		})
-		return
 	} else {
 		s, err := fromString(sedstr)
 		if err != nil {
 			panic("This was supposed to be parsed in the matcher!")
 		}
 
+		rewriteNick := m.Prefix.Name
+		if s.Nick != "" {
+			rewriteNick = s.Nick
+		}
 		searcher := historyEntry{
 			Channel: m.Params[0],
-			Nick:    m.Prefix.Name,
+			Nick:    rewriteNick,
 			Message: s.Target,
 		}
+
 		if ok := histbuf.findMessage(&searcher); ok {
-			newMsg := strings.Replace(searcher.Message, s.Target, s.Replace, s.Position)
-			c.WriteMessage(NewRes(m, fmt.Sprintf("[sed] %s", newMsg)))
+			newMsg := strings.Replace(searcher.Message, s.Target, s.Replace, -1)
+			c.WriteMessage(NewRes(m, fmt.Sprintf("<%s> %s", rewriteNick, newMsg)))
 		}
 	}
 }
