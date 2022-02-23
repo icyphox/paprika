@@ -41,7 +41,7 @@ func (Profile) Execute(cmd, rest string, c *irc.Client, m *irc.Message) {
 		key = cmd[1:]
 	}
 
-	if rest != "" {
+	if rest == "" {
 		val, err := database.DB.Get(database.ToKey(key, strings.ToLower(m.Prefix.Name)))
 		if err == badger.ErrKeyNotFound {
 			c.WriteMessage(NewRes(m, fmt.Sprintf(
