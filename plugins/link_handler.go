@@ -54,7 +54,7 @@ func (LinkHandler) Execute(match, msg string, c *irc.Client, m *irc.Message) {
 	// this if statement block will be used for content that is
 	// non-generic. I.e it belongs to a specific website, like
 	// stackoverflow or youtube.
-	if u.Hostname() == "www.youtube.com" || u.Hostname() == "youtube.com" || u.Hostname() == "youtu.be" {
+	if strings.HasSuffix(u.Hostname(), "youtube.com") || u.Hostname() == "youtu.be" {
 		yt, err := YoutubeDescriptionFromUrl(u)
 		if err != nil {
 			log.Println(err)
